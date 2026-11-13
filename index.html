@@ -1,0 +1,770 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,interactive-widget=resizes-content">
+<meta name="theme-color" content="#0b1020">
+<title>VectorMind · AI 防蚊助手</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%237c8cff'/%3E%3Cpath d='M9 11l7 12 7-12' stroke='%23fff' stroke-width='3' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#0b1020;--bg2:#121933;--card:#151d38;--card2:rgba(255,255,255,.06);--bd:rgba(255,255,255,.09);--tx:#eef2fb;--mt:#93a0bb;
+--ac:#7c8cff;--ac2:#22d3ee;--g:#34d399;--y:#fbbf24;--o:#fb923c;--r:#f87171;--ease:cubic-bezier(.2,.8,.2,1)}
+[data-theme=light]{--bg:#f4f6fb;--bg2:#ffffff;--card:#ffffff;--card2:rgba(15,23,42,.05);--bd:rgba(15,23,42,.1);--tx:#111827;--mt:#64748b}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{background:var(--bg);color:var(--tx);font:15px/1.55 system-ui,-apple-system,'Segoe UI','PingFang HK','Microsoft JhengHei',sans-serif;-webkit-font-smoothing:antialiased}
+button,input,select,textarea{font:inherit;color:inherit}
+button{cursor:pointer;border:0;background:none}
+.app{display:flex;flex-direction:column;height:100dvh;max-width:980px;margin:0 auto}
+/* header */
+.hdr{display:flex;align-items:center;gap:10px;padding:12px 14px 8px}
+.logo{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,var(--ac2),var(--ac));display:grid;place-items:center;color:#fff;flex-shrink:0}
+.logo svg{width:19px;height:19px}
+.hdr b{font-size:16px;display:block;line-height:1.2}
+.hdr small{font-size:12px;color:var(--mt);display:flex;align-items:center;gap:5px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--mt);display:inline-block}
+.dot.live{background:var(--g)}.dot.sim{background:var(--y)}.dot.err{background:var(--r)}
+.ib{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--card2);margin-left:auto;transition:transform .15s}
+.ib+.ib{margin-left:0}
+.ib:active{transform:scale(.9)}
+.ib svg{width:19px;height:19px}
+/* status strip */
+.strip{margin:0 12px;display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:18px;background:var(--card);border:1px solid var(--bd)}
+.ring{position:relative;width:52px;height:52px;flex-shrink:0;cursor:pointer}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring circle{fill:none;stroke-width:6;stroke-linecap:round}
+.ring .bgc{stroke:var(--card2)}
+.ring .fg{transition:stroke-dashoffset 1s var(--ease),stroke .5s}
+.ring span{position:absolute;inset:0;display:grid;place-items:center;font-weight:800;font-size:16px}
+.ring.alarm{animation:pulse 1.4s infinite;border-radius:50%}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(248,113,113,.55)}100%{box-shadow:0 0 0 14px rgba(248,113,113,0)}}
+.sinfo{flex:1;min-width:0}
+.sinfo b{font-size:15px}
+.sinfo div{font-size:12.5px;color:var(--mt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pwr{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:11px;color:var(--mt);padding:4px 6px;border-radius:12px;transition:all .2s}
+.pwr i{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:var(--card2);transition:all .3s}
+.pwr i svg{width:19px;height:19px}
+.pwr.on{color:var(--g)}.pwr.on i{background:rgba(52,211,153,.18);box-shadow:0 0 18px rgba(52,211,153,.35)}
+.note{margin:8px 12px 0;font-size:12px;color:var(--y);background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.25);padding:6px 10px;border-radius:12px;display:none}
+.note.show{display:block}
+.note.crit{color:var(--r);background:rgba(248,113,113,.08);border-color:rgba(248,113,113,.3)}
+/* chat */
+.msgs{flex:1;overflow-y:auto;padding:14px 12px 6px;scroll-behavior:smooth}
+.msg{display:flex;gap:9px;margin-bottom:14px;animation:up .35s var(--ease)}
+@keyframes up{from{opacity:0;transform:translateY(8px)}}
+.av{width:30px;height:30px;border-radius:10px;flex-shrink:0;display:grid;place-items:center;background:linear-gradient(135deg,var(--ac2),var(--ac));color:#fff}
+.av svg{width:16px;height:16px}
+.msg.u{justify-content:flex-end}
+.msg.u .bub{background:var(--ac);color:#fff;border:0;border-bottom-right-radius:6px;max-width:82%}
+.col{min-width:0;flex:1;max-width:100%}
+.bub{display:inline-block;max-width:100%;padding:10px 13px;border-radius:16px;border-top-left-radius:6px;background:var(--card);border:1px solid var(--bd);overflow-wrap:anywhere}
+.bub p{margin:0 0 6px}.bub p:last-child{margin:0}
+.bub ul,.bub ol{margin:2px 0 6px 20px}
+.bub h4{font-size:15px;margin:8px 0 4px}
+.bub code{font:13px ui-monospace,monospace;background:var(--card2);padding:1px 5px;border-radius:5px}
+.bub table{border-collapse:collapse;margin:6px 0;font-size:13px;display:block;overflow:auto}
+.bub td,.bub th{border:1px solid var(--bd);padding:4px 8px}
+.cur::after{content:'';display:inline-block;width:7px;height:14px;background:var(--ac);margin-left:2px;vertical-align:-2px;animation:blink 1s steps(2) infinite}
+@keyframes blink{50%{opacity:0}}
+.typing{display:inline-flex;gap:5px;padding:5px 2px}
+.typing i{width:7px;height:7px;border-radius:50%;background:var(--ac);animation:bob 1s infinite}
+.typing i:nth-child(2){animation-delay:.15s}.typing i:nth-child(3){animation-delay:.3s}
+@keyframes bob{30%{transform:translateY(-5px);opacity:1}0%,60%,100%{opacity:.45}}
+.meta{font-size:11.5px;color:var(--mt);margin-top:4px;display:flex;gap:10px}
+.meta button{color:var(--mt)}.meta button:hover{color:var(--tx)}
+/* widgets */
+.w{margin-top:8px;padding:12px;border-radius:16px;background:var(--card);border:1px solid var(--bd);animation:up .4s var(--ease)}
+.w h5{font-size:12.5px;color:var(--mt);font-weight:600;margin-bottom:8px;display:flex;justify-content:space-between}
+.big{display:flex;align-items:center;gap:14px}
+.big .ring{width:78px;height:78px}.big .ring span{font-size:22px}
+.lvl{display:inline-block;font-size:12px;font-weight:700;padding:2px 9px;border-radius:999px;margin-bottom:3px}
+.bar{margin:7px 0}
+.bar .l{display:flex;justify-content:space-between;font-size:12.5px}
+.bar .l span{color:var(--mt)}
+.bar .t{height:6px;border-radius:6px;background:var(--card2);overflow:hidden;margin-top:3px}
+.bar .f{height:100%;border-radius:6px;transition:width 1s var(--ease)}
+.tip{display:flex;gap:8px;font-size:13px;padding:7px 0;border-top:1px solid var(--bd)}
+.tip:first-child{border-top:0}
+.tiles{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+@media(min-width:560px){.tiles.t4{grid-template-columns:repeat(4,1fr)}}
+.tile{background:var(--card2);border-radius:12px;padding:9px 10px}
+.tile small{display:block;font-size:11.5px;color:var(--mt)}
+.tile b{font-size:19px;font-variant-numeric:tabular-nums}
+.fc{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fc div{background:var(--card2);border-radius:12px;padding:9px;text-align:center}
+.fc small{display:block;font-size:11.5px;color:var(--mt)}
+.fc b{font-size:21px;display:block}
+.mapsvg{width:100%;height:auto;display:block;border-radius:12px;background:radial-gradient(ellipse at 50% 40%,rgba(124,140,255,.10),transparent 70%),var(--card2)}
+.mapsvg text{font-size:9px;fill:var(--mt);pointer-events:none}
+.mapsvg .d{cursor:pointer;transition:r .3s}
+.mapsvg .d:hover{stroke:#fff;stroke-width:2}
+.rk{display:flex;justify-content:space-between;font-size:13px;padding:5px 2px;border-top:1px solid var(--bd);cursor:pointer}
+.pill{font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px}
+canvas.ch{width:100%;height:150px;display:block}
+.lg{display:flex;gap:12px;font-size:11.5px;color:var(--mt);margin-top:6px}
+.lg i{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:4px}
+.act{margin-top:8px;padding:10px 12px;border-radius:14px;border:1px solid rgba(124,140,255,.4);background:rgba(124,140,255,.08);font-size:13.5px;animation:up .3s}
+.act .why{font-size:12px;color:var(--mt);margin:2px 0 8px}
+.done{color:var(--g);font-weight:600;font-size:12.5px}.fail{color:var(--r);font-weight:600;font-size:12.5px}.skip{color:var(--mt);font-size:12.5px}
+.bn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:11px;font-weight:600;font-size:13.5px;background:var(--card2);transition:transform .12s;position:relative;overflow:hidden}
+.bn:active{transform:scale(.95)}
+.bn.p{background:var(--ac);color:#fff}.bn.r{background:var(--r);color:#fff}.bn.g{background:var(--g);color:#052e1c}
+.bn svg{width:15px;height:15px}
+.rip{position:absolute;border-radius:50%;background:rgba(255,255,255,.35);transform:scale(0);animation:rip .6s linear;pointer-events:none}
+@keyframes rip{to{transform:scale(4);opacity:0}}
+/* composer */
+.foot{padding:6px 12px calc(10px + env(safe-area-inset-bottom))}
+.chips{display:flex;gap:7px;overflow-x:auto;padding:2px 0 8px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chips button{flex-shrink:0;padding:7px 13px;border-radius:999px;background:var(--card);border:1px solid var(--bd);font-size:13.5px;transition:border-color .2s}
+.chips button:hover{border-color:var(--ac)}
+.comp{display:flex;align-items:flex-end;gap:6px;background:var(--card);border:1px solid var(--bd);border-radius:22px;padding:6px 6px 6px 14px;transition:border-color .2s,box-shadow .2s}
+.comp:focus-within{border-color:var(--ac);box-shadow:0 0 0 4px rgba(124,140,255,.15)}
+.comp textarea{flex:1;background:none;border:0;outline:0;resize:none;padding:8px 0;max-height:120px;font-size:15px}
+.send{width:40px;height:40px;border-radius:50%;background:var(--ac);color:#fff;display:grid;place-items:center;flex-shrink:0;transition:transform .15s}
+.send:active{transform:scale(.9)}
+.send svg,.mic svg{width:18px;height:18px}
+.mic{width:40px;height:40px;border-radius:50%;display:grid;place-items:center;color:var(--mt);flex-shrink:0}
+.mic.on{color:var(--r)}
+/* sheets */
+.ov{position:fixed;inset:0;z-index:50;background:rgba(3,6,15,.55);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center}
+.ov.on{display:flex;animation:fade .2s}
+@keyframes fade{from{opacity:0}}
+.sheet{width:100%;max-width:560px;max-height:88dvh;overflow:auto;background:var(--bg2);border-radius:22px 22px 0 0;padding:10px 18px calc(20px + env(safe-area-inset-bottom));animation:sheet .3s var(--ease)}
+@media(min-width:600px){.ov{align-items:center}.sheet{border-radius:22px}}
+@keyframes sheet{from{transform:translateY(40px);opacity:0}}
+.grab{width:38px;height:4px;border-radius:4px;background:var(--bd);margin:0 auto 12px}
+.sheet h2{font-size:18px;margin-bottom:4px}
+.sheet p.s{color:var(--mt);font-size:13px;margin-bottom:12px}
+.fl{display:block;font-size:12.5px;color:var(--mt);margin:12px 0 5px}
+.in{width:100%;padding:11px 12px;border-radius:12px;background:var(--card2);border:1px solid var(--bd);outline:0}
+.in:focus{border-color:var(--ac)}
+select.in option{background:var(--bg2)}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.row small{display:block;color:var(--mt);font-size:12px}
+.sw{position:relative;width:46px;height:26px;flex-shrink:0}
+.sw input{opacity:0;position:absolute}
+.sw span{position:absolute;inset:0;border-radius:26px;background:var(--card2);border:1px solid var(--bd);transition:.25s;cursor:pointer}
+.sw span::before{content:'';position:absolute;width:20px;height:20px;left:2px;top:2px;border-radius:50%;background:#fff;transition:.25s var(--ease)}
+.sw input:checked+span{background:var(--g)}
+.sw input:checked+span::before{transform:translateX(20px)}
+.sev{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:6px 0 4px}
+.sev button{padding:14px 6px;border-radius:14px;background:var(--card2);border:2px solid transparent;font-size:13px}
+.sev button b{display:block;font-size:22px}
+.sev button.on{border-color:var(--r);background:rgba(248,113,113,.1)}
+input[type=range]{width:100%;accent-color:var(--ac)}
+#toasts{position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99;display:flex;flex-direction:column;gap:6px;align-items:center;pointer-events:none;width:min(92vw,400px)}
+.toast{background:var(--bg2);border:1px solid var(--bd);box-shadow:0 10px 30px rgba(0,0,0,.3);padding:9px 15px;border-radius:14px;font-size:13.5px;animation:up .3s var(--ease)}
+.toast.out{opacity:0;transition:opacity .3s}
+.tabs{display:flex;gap:4px;margin:10px 12px 0;padding:4px;border-radius:16px;background:var(--card);border:1px solid var(--bd);overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs button{flex:1;min-width:64px;display:flex;flex-direction:column;align-items:center;gap:1px;padding:7px 4px;border-radius:12px;font-size:11.5px;color:var(--mt);transition:all .2s}
+.tabs button svg{width:18px;height:18px}
+.tabs button.on{background:var(--ac);color:#fff}
+.tabs button.ag{font-weight:700}
+.view{display:none;flex:1;min-height:0;flex-direction:column}
+.view.on{display:flex;animation:up .3s var(--ease)}
+.page{flex:1;overflow-y:auto;padding:12px 12px 24px}
+.page .w{margin-top:0;margin-bottom:12px}
+.grid2{display:grid;gap:12px}
+@media(min-width:720px){.grid2{grid-template-columns:1fr 1fr}.grid2 .w{margin-bottom:0}}
+.askb{font-size:12px;color:var(--ac);font-weight:600}
+.btns{display:flex;flex-wrap:wrap;gap:8px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px}
+.kv span{color:var(--mt)}.kv b{text-align:right;font-weight:600;overflow:hidden;text-overflow:ellipsis}
+.seg{display:inline-flex;background:var(--card2);border-radius:10px;padding:3px}
+.seg button{padding:4px 10px;border-radius:8px;font-size:12px;color:var(--mt)}
+.seg button.on{background:var(--ac);color:#fff}
+.bigpwr{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:var(--card2);border:2px solid var(--bd);transition:all .3s;flex-shrink:0}
+.bigpwr svg{width:34px;height:34px;color:var(--mt)}
+.bigpwr.on{border-color:var(--g);background:rgba(52,211,153,.15);box-shadow:0 0 26px rgba(52,211,153,.35)}
+.bigpwr.on svg{color:var(--g)}
+.via{font-size:11px;padding:1px 7px;border-radius:999px;background:rgba(251,191,36,.15);color:var(--y)}
+.muted{color:var(--mt)}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:6px}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hdr">
+    <div class="logo"><i data-i="logo"></i></div>
+    <div><b>VectorMind</b><small><span class="dot" id="dot"></span><span id="conn">連線中…</span></small></div>
+    <button class="ib" onclick="toggleTheme()" title="主題"><i data-i="moon"></i></button>
+  </header>
+
+  <div class="strip">
+    <div class="ring" id="ring" onclick="showLocal('status')" title="查看風險詳情">
+      <svg viewBox="0 0 52 52"><circle class="bgc" cx="26" cy="26" r="22"/><circle class="fg" id="ringFg" cx="26" cy="26" r="22" stroke-dasharray="138.2" stroke-dashoffset="138.2" stroke="#34d399"/></svg>
+      <span id="ringN">--</span>
+    </div>
+    <div class="sinfo"><b id="sLvl">載入中…</b><div id="sLine">正在讀取感測器</div></div>
+    <button class="pwr" id="pwr" onclick="toggleRelay()"><i><i data-i="power"></i></i><span id="pwrT">驅蚊器</span></button>
+    <button class="pwr" onclick="openSheet('ovRep')" style="color:var(--r)"><i><i data-i="bug"></i></i>報告</button>
+  </div>
+  <div class="note" id="note"></div>
+  <nav class="tabs" id="tabs">
+    <button data-v="agent" class="ag on"><i data-i="logo"></i>AI 助手</button>
+    <button data-v="home"><i data-i="home"></i>總覽</button>
+    <button data-v="map"><i data-i="map"></i>地圖</button>
+    <button data-v="trend"><i data-i="chart"></i>趨勢</button>
+    <button data-v="device"><i data-i="cpu"></i>裝置</button>
+    <button data-v="settings"><i data-i="gear"></i>設定</button>
+  </nav>
+  <section class="view on" id="v-agent">
+  <main class="msgs" id="msgs"></main>
+
+  <footer class="foot">
+    <div class="chips" id="chips"></div>
+    <div class="comp">
+      <textarea id="inp" rows="1" placeholder="問我任何防蚊問題，或叫我做嘢…"></textarea>
+      <button class="mic" id="mic" onclick="voice()" title="語音"><i data-i="mic"></i></button>
+      <button class="send" id="send" onclick="send()" title="發送"><i data-i="send"></i></button>
+    </div>
+  </footer>
+  </section>
+  <section class="view" id="v-home"><div class="page" id="p-home"></div></section>
+  <section class="view" id="v-map"><div class="page" id="p-map"></div></section>
+  <section class="view" id="v-trend"><div class="page" id="p-trend"></div></section>
+  <section class="view" id="v-device"><div class="page" id="p-device"></div></section>
+  <section class="view" id="v-settings"><div class="page" id="p-settings"></div></section>
+</div>
+
+<div class="ov" id="ovRep" onclick="if(event.target===this)closeSheets()">
+  <div class="sheet"><div class="grab"></div>
+    <h2>🦟 報告蚊蹤</h2><p class="s">你見到幾多？報告會即時影響風險分數。</p>
+    <div class="sev" id="sev"><button data-s="1"><b>🦟</b>一兩隻</button><button data-s="2" class="on"><b>🦟🦟</b>幾隻</button><button data-s="3"><b>🦟🦟🦟</b>好多／被叮</button></div>
+    <input class="in" id="repNote" maxlength="30" placeholder="地點（可選），例如：廚房窗邊" style="margin-top:10px">
+    <button class="bn r" style="width:100%;justify-content:center;margin-top:12px;padding:13px" onclick="doReport()">提交報告</button>
+  </div>
+</div>
+
+<div id="toasts"></div>
+<script>
+'use strict';
+/* ===================== VectorMind v23 · core ===================== */
+const CFG={WORKER:'https://young-sunset-8acc.krisseal328.workers.dev',DB:'https://mp-supabase.s2025075.workers.dev/',VER:'23.0'};
+const DN=['中西區','灣仔','東區','南區','油尖旺','深水埗','九龍城','黃大仙','觀塘','葵青','荃灣','屯門','元朗','北區','大埔','沙田','西貢','離島'];
+const DEN=['Central & Western','Wan Chai','Eastern','Southern','Yau Tsim Mong','Sham Shui Po','Kowloon City','Wong Tai Sin','Kwun Tong','Kwai Tsing','Tsuen Wan','Tuen Mun','Yuen Long','North','Tai Po','Sha Tin','Sai Kung','Islands'];
+const DC=[[22.286,114.15],[22.276,114.172],[22.284,114.224],[22.247,114.16],[22.312,114.172],[22.33,114.162],[22.328,114.192],[22.342,114.196],[22.313,114.226],[22.357,114.13],[22.371,114.114],[22.39,113.972],[22.445,114.035],[22.494,114.138],[22.451,114.161],[22.381,114.188],[22.381,114.27],[22.261,113.946]];
+const VIEWS={home:['總覽','即時風險、洞察及行動建議'],agent:['AI Agent','由 NVIDIA 模型驅動，可直接操作裝置'],map:['風險地圖','全港 18 區 · 感測網絡'],analytics:['數據分析','趨勢、預測、異常偵測'],device:['裝置控制','感測器、驅蚊器及診斷'],settings:['設定','個人化、AI 及通知']};
+const $=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const num=v=>{if(v==null||v==='')return NaN;const n=typeof v==='number'?v:parseFloat(v);return isFinite(n)?n:NaN};
+const esc=s=>String(s==null?'':s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const pad=n=>String(n).padStart(2,'0');
+const hm=d=>pad(d.getHours())+':'+pad(d.getMinutes());
+const LS={get(k,d){try{const v=localStorage.getItem('vm.'+k);return v==null?d:JSON.parse(v)}catch(e){return d}},set(k,v){try{localStorage.setItem('vm.'+k,JSON.stringify(v))}catch(e){}},del(k){try{localStorage.removeItem('vm.'+k)}catch(e){}}};
+const P=Object.assign({theme:'dark',auto:false,temp:0.6,maxTok:700,think:false,stream:true,notify:false,sound:true,reduce:false,model:'',range:'s',mapLayer:'dist'},LS.get('prefs',{}));
+function saveP(){LS.set('prefs',P)}
+const S={mode:'?',st:null,hist:{s:[],l:[]},db:[],dbAt:0,dbVia:'',dist:null,fc:null,models:[],chat:LS.get('chat',[]),busy:false,ctrl:null,view:'',prevRisk:null,lastAlert:0,events:[],charts:{},map:null,mapL:[],fails:0,hko:null};
+
+/* ---------- icons (inline SVG, lucide-style) ---------- */
+const IC={logo:'<path d="M5 7l7 12 7-12"/><circle cx="12" cy="5" r="1.6"/>',home:'<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',bot:'<rect x="4" y="8" width="16" height="12" rx="3"/><path d="M12 8V4M9 13h.01M15 13h.01M9 17h6"/>',map:'<path d="M9 4L3 6v14l6-2 6 2 6-2V4l-6 2z"/><path d="M9 4v14M15 6v14"/>',chart:'<path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 6-7"/>',cpu:'<rect x="6" y="6" width="12" height="12" rx="2"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/>',gear:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/>',bug:'<path d="M8 2l1.9 1.9M16 2l-1.9 1.9M9 7.1V6a3 3 0 0 1 6 0v1.1"/><path d="M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6zM12 20v-9M6 13H2M22 13h-4M6.5 8.5L4 7M17.5 8.5L20 7M6 17l-2.5 1.5M18 17l2.5 1.5"/>',sparkles:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9zM19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9z"/>',search:'<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',moon:'<path d="M21 12.8A9 9 0 1 1 11.2 3 7 7 0 0 0 21 12.8z"/>',sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/>',shield:'<path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>',layers:'<path d="M12 2l10 5-10 5L2 7z"/><path d="M2 17l10 5 10-5M2 12l10 5 10-5"/>',power:'<path d="M18.4 6.6a9 9 0 1 1-12.8 0M12 2v10"/>',zap:'<path d="M13 2L3 14h9l-1 8 10-12h-9z"/>',clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/>',check:'<path d="M20 6L9 17l-5-5"/>',cloud:'<path d="M17.5 19H7a5 5 0 1 1 1-9.9A6 6 0 0 1 19.5 11 4 4 0 0 1 17.5 19z"/>',activity:'<path d="M22 12h-4l-3 9L9 3l-3 9H2"/>',plus:'<path d="M12 5v14M5 12h14"/>',download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>',mic:'<rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v5"/>',send:'<path d="M22 2L11 13M22 2l-7 20-4-9-9-4z"/>',stop:'<rect x="6" y="6" width="12" height="12" rx="2"/>',refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8M21 3v5h-5"/>',target:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><circle cx="12" cy="12" r="1"/>',sigma:'<path d="M18 7V4H6l6 8-6 8h12v-3"/>',radar:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="5"/><path d="M12 12l6-6"/>',pie:'<path d="M21.2 15.9A10 10 0 1 1 8 2.8"/><path d="M22 12A10 10 0 0 0 12 2v10z"/>',alert:'<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0zM12 9v4M12 17h.01"/>',wrench:'<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/>',user:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',sliders:'<path d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"/>',bell:'<path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.7 21a2 2 0 0 1-3.4 0"/>',info:'<circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/>',thermo:'<path d="M14 14.8V4a2 2 0 0 0-4 0v10.8a4 4 0 1 0 4 0z"/>',drop:'<path d="M12 2.7l5.7 5.7a8 8 0 1 1-11.4 0z"/>',wind:'<path d="M9.6 4.6A2 2 0 1 1 11 8H2M12.6 19.4A2 2 0 1 0 14 16H2M17.7 7.7A2.5 2.5 0 1 1 19.5 12H2"/>',eye:'<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>',ruler:'<path d="M21.3 8.7L8.7 21.3a1 1 0 0 1-1.4 0l-4.6-4.6a1 1 0 0 1 0-1.4L15.3 2.7a1 1 0 0 1 1.4 0l4.6 4.6a1 1 0 0 1 0 1.4zM7.5 10.5l2 2M10.5 7.5l2 2M13.5 4.5l2 2M4.5 13.5l2 2"/>',wifi:'<path d="M5 12.6a10 10 0 0 1 14 0M8.5 16.1a5 5 0 0 1 7 0M2 8.8a15 15 0 0 1 20 0M12 20h.01"/>',copy:'<rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',users:'<circle cx="9" cy="7" r="4"/><path d="M2 21a7 7 0 0 1 14 0M16 3.1a4 4 0 0 1 0 7.8M22 21a7 7 0 0 0-5-6.7"/>',x:'<path d="M18 6L6 18M6 6l12 12"/>',rain:'<path d="M16 13v8M8 13v8M12 15v8M20 16.6A5 5 0 0 0 18 7h-1.3A8 8 0 1 0 4 15.3"/>'};
+function ic(n,st){return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"'+(st?' style="'+st+'"':'')+'>'+(IC[n]||IC.info)+'</svg>'}
+function paintIcons(root){(root||document).querySelectorAll('i[data-i]').forEach(e=>{const n=e.getAttribute('data-i');const s=e.getAttribute('style');e.outerHTML=ic(n,s)})}
+
+/* ---------- risk model (identical to firmware) ---------- */
+const M={
+  sT:t=>t<10?0:t<26?(t-10)/16:t<=30?1:t<38?1-(t-30)/8:0,
+  sH:h=>h<35?0:h<90?(h-35)/55:1,
+  tF(H,mi){const x=H+mi/60,g=(c,s)=>Math.exp(-((x-c)*(x-c))/(2*s*s));return clamp(Math.max(g(6.5,1.3),g(18.5,1.4),(x>=8&&x<17)?.35:.12),0,1)},
+  sF:mo=>[.3,.3,.4,.55,.8,1,1,1,1,.8,.55,.35][clamp(mo,1,12)-1],
+  parts(t,h,o){o=o||{};const wT=o.wT==null?50:o.wT,wH=o.wH==null?50:o.wH,sum=Math.max(1,wT+wH),d=o.date||new Date();
+    const sea=.45+.55*M.sF(d.getMonth()+1);
+    return{temp:100*wT*M.sT(t)/sum*sea,hum:100*wH*M.sH(h)/sum*sea,time:12*M.tF(d.getHours(),d.getMinutes()),rain:8*(o.rain||0),act:10*(o.act||0)}},
+  env(t,h,o){const p=M.parts(t,h,o);return Math.round(clamp(p.temp+p.hum+p.time+p.rain+p.act,0,100))},
+  dew(t,h){const a=17.62,b=243.12,g=Math.log(Math.max(1,h)/100)+a*t/(b+t);return b*g/(a-g)},
+  heat(t,h){if(t<26.7)return t;const T=t*9/5+32,R=h;const HI=-42.379+2.04901523*T+10.14333127*R-.22475541*T*R-.00683783*T*T-.05481717*R*R+.00122874*T*T*R+.00085282*T*R*R-.00000199*T*T*R*R;return (HI-32)*5/9}
+};
+const LV=[[80,'危急','Critical','#f87171'],[65,'高','Very high','#fb923c'],[45,'偏高','High','#fbbf24'],[25,'中','Moderate','#34d399'],[0,'低','Low','#22d3ee']];
+const lvl=r=>LV.find(x=>r>=x[0]);
+const rc=r=>lvl(r)[3];
+function km(a,b,c,d){const R=6371,x=(d-b)*Math.PI/180*Math.cos((a+c)/2*Math.PI/180),y=(c-a)*Math.PI/180;return Math.sqrt(x*x+y*y)*R}
+
+/* ---------- simulation (preview without hardware) ---------- */
+const Sim={
+  c:Object.assign({nick:'',dist:4,lat:22.3193,lon:114.1694,wT:50,wH:50,thr:70,qs:23,qe:7,buzz:1,bat:1,model:''},LS.get('sim',{})),
+  relay:false,auto:true,reports:0,lastRep:0,ir:0,ev:[],relayAt:0,pend:null,
+  save(){LS.set('sim',this.c)},
+  env(d){const H=d.getHours()+d.getMinutes()/60,n=(Math.sin(d.getTime()/9e4)+Math.sin(d.getTime()/37e3))*.25;return{t:27.6+3.1*Math.sin((H-9)/24*2*Math.PI)+n,h:clamp(79-9*Math.sin((H-9)/24*2*Math.PI)+n*3,40,99)}},
+  log(m){this.ev.unshift({ts:Math.floor(Date.now()/1000),m});this.ev.length=Math.min(this.ev.length,24)},
+  state(){const d=new Date(),e=this.env(d),c=this.c;const motion=Math.random()<.04;if(motion)this.ir++;
+    const act=motion?1:0,ub=this.lastRep?Math.round(clamp(this.reports*35,0,100)*Math.exp(-(Date.now()-this.lastRep)/36e5)):0;
+    const local=M.env(e.t,e.h,{wT:c.wT,wH:c.wH,act,rain:.2});
+    const net=S.dist?S.dist[c.dist][2]:local+4,hasNet=!!S.dist;
+    const risk=Math.round(clamp(local*.65+net*.25+ub*.1,0,100));
+    if(this.auto){if(risk>=c.thr&&!this.relay){this.relay=true;this.relayAt=Date.now();this.log('自動開啟驅蚊器')}else if(risk<c.thr-8&&this.relay){this.relay=false;this.log('自動關閉驅蚊器')}}
+    return{v:CFG.VER,sim:true,epoch:Math.floor(d/1000),up:Math.floor(performance.now()/1000),
+      s:{t:+e.t.toFixed(1),h:+e.h.toFixed(1),ult:+(motion?18+Math.random()*20:120+Math.random()*60).toFixed(1),motion,ir:motion,irCnt:this.ir,dhtOK:true,dhtFail:0},
+      r:{risk,local,net:Math.round(net),user:ub,conf:hasNet?88:72,trend:0,netOK:hasNet,f:{sT:M.sT(e.t),sH:M.sH(e.h),tF:M.tF(d.getHours(),d.getMinutes()),sF:M.sF(d.getMonth()+1),rain:.2,act}},
+      relay:{on:this.relay,auto:this.auto,secs:this.relay?Math.floor((Date.now()-this.relayAt)/1000):0},
+      net:{ok:hasNet,n:S.db.length,age:S.dbAt?Math.floor((Date.now()-S.dbAt)/1000):-1},
+      hko:S.hko?{t:S.hko.t,h:S.hko.h,rain:S.hko.rain,uv:S.hko.uv,warn:S.hko.warn,st:S.hko.st,ok:1}:{ok:0},
+      cfg:c,reports:this.reports,pend:this.pend||{has:false},
+      sys:{ip:'模擬模式',chip:'SIM',rssi:-58,heap:0,night:false,lp:false,ver:CFG.VER}}},
+  hist(n,step){const a=[],now=Date.now();for(let i=n-1;i>=0;i--){const d=new Date(now-i*step*1000),e=this.env(d);a.push([Math.floor(d/1000),+e.t.toFixed(1),Math.round(e.h),M.env(e.t,e.h,{date:d,wT:this.c.wT,wH:this.c.wH,rain:.2})])}return a},
+  cmd(a){const m={relay_on:()=>{this.relay=true;this.relayAt=Date.now();this.log('開啟驅蚊器')},relay_off:()=>{this.relay=false;this.log('關閉驅蚊器')},relay_toggle:()=>m[this.relay?'relay_off':'relay_on'](),auto_on:()=>{this.auto=true},auto_off:()=>{this.auto=false},weights_reset:()=>{this.c.wT=50;this.c.wH=50;this.save()},
+    pend_accept:()=>{if(this.pend&&this.pend.has){this.c.wT=this.pend.wT;this.c.wH=this.pend.wH;this.pend=null;this.save()}},pend_reject:()=>{this.pend=null}};(m[a]||(()=>{}))();return{ok:true,relay:this.relay,auto:this.auto}},
+  report(sev){this.reports+=sev;this.lastRep=Date.now();this.log('用戶報告蚊蹤 ×'+sev);this.pend={has:true,wT:clamp(this.c.wT+5,0,100),wH:clamp(this.c.wH+8,0,100),why:'你報告了蚊蹤，而目前濕度偏高，建議提高濕度敏感度。'};return{ok:true,cnt:this.reports}}
+};
+
+/* ---------- API layer: ESP8266 (LIVE) or direct Worker (SIM) ---------- */
+async function jfetch(u,o,ms){const c=new AbortController(),t=setTimeout(()=>c.abort(),ms||8000);try{const r=await fetch(u,Object.assign({signal:c.signal},o||{}));if(!r.ok)throw new Error('HTTP '+r.status);return await r.json()}finally{clearTimeout(t)}}
+const API={
+  async state(){if(S.mode==='sim')return Sim.state();return jfetch('/api/state',null,6000)},
+  async hist(r){if(S.mode==='sim')return r==='l'?Sim.hist(96,900):Sim.hist(180,60);const j=await jfetch('/api/history?r='+r);return j.d||[]},
+  async events(){if(S.mode==='sim')return Sim.ev;const j=await jfetch('/api/events');return j.e||[]},
+  async districts(){if(S.mode==='sim')return null;return jfetch('/api/districts')},
+  async cmd(a){if(S.mode==='sim')return Sim.cmd(a);return jfetch('/api/cmd?a='+encodeURIComponent(a),{method:'POST'})},
+  async settings(o){if(S.mode==='sim'){Object.assign(Sim.c,o);Sim.save();return{ok:true}}const q=new URLSearchParams(o).toString();return jfetch('/api/settings?'+q,{method:'POST'})},
+  async report(sev,note){if(S.mode==='sim')return Sim.report(sev);return jfetch('/api/report?sev='+sev+'&note='+encodeURIComponent(note||''),{method:'POST'})},
+  aiBase(){return S.mode==='sim'?CFG.WORKER:''},
+  async models(){if(S.mode==='sim')return jfetch(CFG.WORKER+'/v1/models',null,15000);return jfetch('/api/models',null,20000)},
+  async health(){if(S.mode==='sim')return jfetch(CFG.WORKER+'/health',null,10000);return jfetch('/api/aihealth',null,15000)},
+  chat(body,signal){const u=S.mode==='sim'?CFG.WORKER+'/v1/chat/completions':'/api/ai';return fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal})},
+  async db(sel){const q=sel?'?select='+sel:'';
+    try{const j=await jfetch(CFG.DB+q,null,12000);S.dbVia='直連';return j}catch(e){if(S.mode==='sim')throw e}
+    const j=await jfetch('/api/db'+q,null,20000);S.dbVia='經裝置';return j}
+};
+
+/* ---------- new database normaliser (mp-supabase) ---------- */
+function normRows(j){
+  const a=Array.isArray(j)?j:(j&&(j.data||j.rows||j.result||j.records||j.items||j.readings))||[];
+  const out=[];
+  for(const r of a){if(!r||typeof r!=='object')continue;
+    let t=num(r.t!=null?r.t:r.temp!=null?r.temp:r.temperature);
+    const h=num(r.h!=null?r.h:r.hum!=null?r.hum:r.humidity),la=num(r.la!=null?r.la:r.lat!=null?r.lat:r.latitude),lo=num(r.lo!=null?r.lo:r.lon!=null?r.lon:r.lng!=null?r.lng:r.longitude);
+    let ts=r.created_at||r.inserted_at||r.updated_at||r.time||r.ts||r.timestamp||r.date||null;
+    if(ts!=null){const n=num(ts);ts=isFinite(n)&&String(ts).match(/^\d+(\.\d+)?$/)?(n>1e12?n:n*1000):Date.parse(ts);if(!isFinite(ts))ts=null}
+    if(!isFinite(t)||!isFinite(h)||t<-20||t>65||h<0||h>100)continue;
+    out.push({t,h,la:isFinite(la)&&Math.abs(la)<=90?la:null,lo:isFinite(lo)&&Math.abs(lo)<=180?lo:null,ts,id:r.id!=null?r.id:(r.device||r.dev||r.chip||null)})}
+  return out}
+
+/* District interpolation from network points (inverse-distance weighting) */
+function interpDistricts(pts,cfg){
+  const geo=pts.filter(p=>p.la!=null&&p.lo!=null),d=[];
+  const fallbackT=S.st?S.st.s.t:28,fallbackH=S.st?S.st.s.h:75;
+  for(let i=0;i<18;i++){let w=0,wt=0,wh=0,n=0;
+    for(const p of geo){const k=km(DC[i][0],DC[i][1],p.la,p.lo);if(k>12)continue;let rec=1;if(p.ts){const ag=(Date.now()-p.ts)/36e5;if(ag>0)rec=Math.max(.05,Math.exp(-ag/6))}const ww=rec/(k*k+.25);w+=ww;wt+=ww*p.t;wh+=ww*p.h;n++}
+    const src=w>0?1:0,t=w>0?wt/w:(S.hko&&isFinite(S.hko.t)?S.hko.t:fallbackT),h=w>0?wh/w:(S.hko&&isFinite(S.hko.h)?S.hko.h:fallbackH);
+    const rain=S.hko&&S.hko.rainD?clamp((S.hko.rainD[DN[i]]||0)/10,0,1):0;
+    d.push([+t.toFixed(1),+h.toFixed(1),M.env(t,h,{wT:cfg?cfg.wT:50,wH:cfg?cfg.wH:50,rain}),src,n])}
+  return d}
+
+/* ---------- small helpers ---------- */
+function toast(m,ms){const t=document.createElement('div');t.className='toast';t.innerHTML=m;$('#toasts').appendChild(t);setTimeout(()=>{t.classList.add('out');setTimeout(()=>t.remove(),300)},ms||2600)}
+function beep(f,d){if(!P.sound)return;try{const A=beep.c||(beep.c=new (window.AudioContext||window.webkitAudioContext)());const o=A.createOscillator(),g=A.createGain();o.frequency.value=f||880;g.gain.setValueAtTime(.08,A.currentTime);g.gain.exponentialRampToValueAtTime(.0001,A.currentTime+(d||.18));o.connect(g).connect(A.destination);o.start();o.stop(A.currentTime+(d||.18))}catch(e){}}
+function notify(t,b){toast('🔔 <b>'+esc(t)+'</b> '+esc(b),4000);beep(660,.25);if(P.notify&&'Notification'in window&&Notification.permission==='granted'){try{new Notification(t,{body:b})}catch(e){}}}
+function countUp(el,to,dec){if(!el)return;const from=parseFloat(el.dataset.v||'0')||0;el.dataset.v=to;if(P.reduce||!isFinite(from)){el.textContent=to.toFixed(dec||0);return}const t0=performance.now(),D=700;(function f(n){const k=Math.min(1,(n-t0)/D),e=1-Math.pow(1-k,3);el.textContent=(from+(to-from)*e).toFixed(dec||0);if(k<1)requestAnimationFrame(f)})(t0)}
+function spark(cv,data,color){if(!cv||!data||data.length<2)return;const r=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=h*r;const x=cv.getContext('2d');x.scale(r,r);
+  const mn=Math.min(...data),mx=Math.max(...data),rg=(mx-mn)||1;x.beginPath();data.forEach((v,i)=>{const px=i/(data.length-1)*w,py=h-4-(v-mn)/rg*(h-10);i?x.lineTo(px,py):x.moveTo(px,py)});
+  x.strokeStyle=color;x.lineWidth=1.8;x.stroke();x.lineTo(w,h);x.lineTo(0,h);x.closePath();const g=x.createLinearGradient(0,0,0,h);g.addColorStop(0,color+'55');g.addColorStop(1,color+'00');x.fillStyle=g;x.fill()}
+function linreg(ys){const n=ys.length;if(n<3)return{m:0,b:ys[0]||0,r2:0};let sx=0,sy=0,sxy=0,sxx=0,syy=0;ys.forEach((y,x)=>{sx+=x;sy+=y;sxy+=x*y;sxx+=x*x;syy+=y*y});const m=(n*sxy-sx*sy)/((n*sxx-sx*sx)||1),b=(sy-m*sx)/n,r=(n*sxy-sx*sy)/Math.sqrt(((n*sxx-sx*sx)*(n*syy-sy*sy))||1);return{m,b,r2:r*r}}
+function stats(a){if(!a.length)return{mn:NaN,mx:NaN,avg:NaN,sd:NaN};const avg=a.reduce((s,v)=>s+v,0)/a.length,sd=Math.sqrt(a.reduce((s,v)=>s+(v-avg)*(v-avg),0)/a.length);return{mn:Math.min(...a),mx:Math.max(...a),avg,sd}}
+function ripple(e){const b=e.target.closest('.bn');if(!b||P.reduce)return;const r=b.getBoundingClientRect(),s=Math.max(r.width,r.height),d=document.createElement('span');d.className='rip';d.style.cssText='width:'+s+'px;height:'+s+'px;left:'+(e.clientX-r.left-s/2)+'px;top:'+(e.clientY-r.top-s/2)+'px';b.appendChild(d);setTimeout(()=>d.remove(),600)}
+function loadScript(src){return new Promise((ok,no)=>{const s=document.createElement('script');s.src=src;s.onload=ok;s.onerror=no;document.head.appendChild(s)})}
+function loadCSS(href){const l=document.createElement('link');l.rel='stylesheet';l.href=href;document.head.appendChild(l)}
+function dl(name,txt,type){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([txt],{type:type||'text/plain'}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+</script>
+<script>
+async function detectMode(){
+  if(location.protocol==='file:'){S.mode='sim';return}
+  try{await jfetch('/api/state',null,5000);S.mode='live'}catch(e){S.mode='sim'}
+}
+async function loadHKO(){
+  try{const j=await jfetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=rhrread&lang=tc',null,10000);
+    const dist=S.st?S.st.cfg.dist:4,rainD={};(j.rainfall&&j.rainfall.data||[]).forEach(x=>rainD[x.place]=num(x.max)||0);
+    const temps=j.temperature&&j.temperature.data||[];const pick=temps.find(x=>x.place&&x.place.indexOf(DN[dist].slice(0,2))>=0)||temps.find(x=>x.place==='香港天文台')||temps[0];
+    S.hko=Object.assign(S.hko||{},{t:pick?num(pick.value):NaN,st:pick?pick.place:'',h:num(j.humidity&&j.humidity.data&&j.humidity.data[0]&&j.humidity.data[0].value),rain:rainD[DN[dist]]||0,rainD,uv:j.uvindex&&j.uvindex.data&&j.uvindex.data[0]?j.uvindex.data[0].value:null,warn:Array.isArray(j.warningMessage)?j.warningMessage.join(' '):(j.warningMessage||'')});
+  }catch(e){}
+  try{const f=await jfetch('https://data.weather.gov.hk/weatherAPI/opendata/weather.php?dataType=fnd&lang=tc',null,10000);
+    S.fc=(f.weatherForecast||[]).map(x=>{const t=(num(x.forecastMaxtemp&&x.forecastMaxtemp.value)+num(x.forecastMintemp&&x.forecastMintemp.value))/2,h=(num(x.forecastMaxrh&&x.forecastMaxrh.value)+num(x.forecastMinrh&&x.forecastMinrh.value))/2,psr=x.PSR||'';
+      const rain=/高/.test(psr)?.8:/中/.test(psr)?.5:/低/.test(psr)?.2:.1;const d=new Date(x.forecastDate.slice(0,4)+'-'+x.forecastDate.slice(4,6)+'-'+x.forecastDate.slice(6,8)+'T15:00:00');
+      const cfg=S.st?S.st.cfg:{wT:50,wH:50};return{date:x.forecastDate,wk:x.week,t,h,tmax:num(x.forecastMaxtemp&&x.forecastMaxtemp.value),tmin:num(x.forecastMintemp&&x.forecastMintemp.value),psr,wx:x.forecastWeather,risk:M.env(t,h,{date:d,wT:cfg.wT,wH:cfg.wH,rain})}});
+  }catch(e){}
+  refreshUI();
+}
+function analyse(){
+  const st=S.st;if(!st)return null;const s=st.s,r=st.r,cfg=st.cfg;
+  const hist=S.hist.s.length?S.hist.s:[];const rs=hist.slice(-30).map(x=>x[3]);
+  const lr=linreg(rs);const slopeH=clamp(rs.length>=10?lr.m*60:(+r.trend||0),-60,60);const f1=clamp(Math.round(r.risk+slopeH),0,100),f3=clamp(Math.round(r.risk+slopeH*3*.6),0,100);
+  const ts=hist.map(x=>x[1]),hs=hist.map(x=>x[2]),sT=stats(ts.slice(-60)),sH=stats(hs.slice(-60));
+  const zT=sT.sd>0?(s.t-sT.avg)/sT.sd:0,zH=sH.sd>0?(s.h-sH.avg)/sH.sd:0;
+  const stuck=ts.length>=30&&stats(ts.slice(-30)).sd===0&&stats(hs.slice(-30)).sd===0;
+  const dp=M.dew(s.t,s.h),hi=M.heat(s.t,s.h);
+  const parts=M.parts(s.t,s.h,{wT:cfg.wT,wH:cfg.wH,rain:r.f?r.f.rain:0,act:r.f?r.f.act:0});
+  const dist=S.dist||[];const ranked=dist.map((d,i)=>({i,r:d[2],t:d[0],h:d[1],src:d[3]})).sort((a,b)=>b.r-a.r);
+  const myD=dist[cfg.dist];const geo=S.db.filter(p=>p.la!=null);
+  const near=geo.filter(p=>km(cfg.lat,cfg.lon,p.la,p.lo)<=5);
+  const hkoDelta=S.hko&&isFinite(S.hko.t)?s.t-S.hko.t:NaN;
+  const now=new Date(),x=now.getHours()+now.getMinutes()/60;
+  let next=[6.5,18.5,30.5].find(p=>p>x+.0001)||30.5;const toPeak=(next-x)*60;
+  return{slopeH,f1,f3,r2:lr.r2,zT,zH,stuck,dp,hi,parts,ranked,myD,near,geoN:geo.length,hkoDelta,toPeak,nextPeak:next%24,sT,sH};
+}
+function insights(a){
+  const st=S.st,s=st.s,r=st.r,out=[];if(!a)return out;const L=lvl(r.risk);
+  const add=(lv,i,t,p,act)=>out.push({lv,i,t,p,act});
+  if(r.risk>=80)add('crit','🚨','風險危急 '+r.risk+'%','蚊蟲活躍度極高。關窗、開啟驅蚊器，外出穿淺色長袖並使用含 DEET 驅蚊劑。',st.relay.on?null:['立即開啟驅蚊器',"cmd('relay_on')"]);
+  else if(r.risk>=65)add('warn','⚠️','高風險 '+r.risk+'%','環境非常適合蚊子活動，建議做好個人防護。',st.relay.on?null:['開啟驅蚊器',"cmd('relay_on')"]);
+  else if(r.risk<25)add('ok','✅','風險偏低','現時環境不利蚊子活動，可放心進行戶外活動。');
+  if(a.toPeak<=75)add('warn','🌆','叮咬高峰將至（'+Math.round(a.toPeak)+' 分鐘）','白紋伊蚊在清晨及黃昏最活躍，請提前做好防護。');
+  if(Math.abs(a.slopeH)>=4)add(a.slopeH>0?'warn':'ok',a.slopeH>0?'📈':'📉','風險'+(a.slopeH>0?'上升':'下降')+'中 '+(a.slopeH>0?'+':'')+a.slopeH.toFixed(1)+'%/小時','按最近 30 分鐘線性趨勢推算，1 小時後約 '+a.f1+'%。');
+  if(s.h>=80)add('warn','💧','濕度 '+s.h.toFixed(0)+'% 利於繁殖','高濕環境縮短蚊卵孵化時間。請每週清理積水、花盆底碟及渠口。');
+  if(s.t>=26&&s.t<=30)add('info','🌡️','溫度處於最佳活動區間','26–30°C 是白紋伊蚊最活躍的溫度，現時 '+s.t.toFixed(1)+'°C。');
+  if(S.hko&&S.hko.rain>0)add('warn','🌧️','你的地區過去一小時有雨（'+S.hko.rain+' mm）','雨後 7–10 日蚊量通常上升，雨停後請盡快清除積水。');
+  if(a.myD&&r.netOK&&a.myD[2]-r.local>=15)add('warn','🗺️','周邊地區風險較高','網絡估算 '+DN[st.cfg.dist]+' 為 '+a.myD[2]+'%，高於本機 '+r.local+'%。');
+  if(a.ranked.length&&a.ranked[0].r>=65)add('info','📍','全港最高：'+DN[a.ranked[0].i]+' '+a.ranked[0].r+'%','前往該區時請加強防護。',['查看地圖',"go('map')"]);
+  if(isFinite(a.hkoDelta)&&Math.abs(a.hkoDelta)>=3)add('info','🧭','感測器與天文台相差 '+a.hkoDelta.toFixed(1)+'°C','可能受陽光直射或熱源影響，建議把裝置移至陰涼通風處。');
+  if(a.stuck)add('warn','🛠️','溫濕度讀數 30 分鐘無變化','DHT11 可能接觸不良，請檢查接線。');
+  if(!s.dhtOK)add('crit','🛠️','DHT11 讀取失敗','正使用最後一次有效讀數，請檢查 D6 接線。');
+  if(s.motion||s.ir)add('warn','👁️','偵測到附近有活動','超音波／紅外線感測器剛被觸發。');
+  if(S.fc&&S.fc[0]&&S.fc[0].risk>=65)add('warn','📅','明天預計高風險 '+S.fc[0].risk+'%',S.fc[0].wx?S.fc[0].wx.slice(0,40)+'…':'');
+  if(st.pend&&st.pend.has)add('info','🤖','AI 建議調整模型權重',st.pend.why||'',['查看建議',"go('settings')"]);
+  if(!r.netOK)add('info','📡','未取得網絡數據','網絡層權重已暫時分配到本機層。');
+  return out.slice(0,7)}
+</script>
+<script>
+/* ===================== full control pages (agent stays the home) ===================== */
+let TR='s',FULLMAP=false;
+const askBtn=q=>'<button class="askb" onclick="go(\'agent\');quickAsk(\''+q.replace(/'/g,'')+'\')">✨ 問 AI</button>';
+function card(title,right,body){return '<div class="w"><h5><span>'+title+'</span><span>'+(right||'')+'</span></h5>'+body+'</div>'}
+function wcard(w,q){const h=W[w]();return '<div class="w">'+h.replace(/<h5><span>(.*?)<\/span><span>(.*?)<\/span><\/h5>/,(m,a,b)=>'<h5><span>'+a+'</span><span>'+b+' '+askBtn(q)+'</span></h5>')+'</div>'}
+
+function renderView(force){
+  if(VIEW==='agent'||!S.st)return;
+  const pg=$('#p-'+VIEW);if(!pg)return;
+  if(!force&&pg.contains(document.activeElement)&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))return; // don't clobber typing
+  if(VIEW==='settings'&&!force)return;
+  const top=pg.scrollTop;pg.innerHTML=PAGES[VIEW]();drawCharts(pg);pg.scrollTop=top;
+  if(VIEW==='settings')loadModels()}
+
+const PAGES={
+  home(){const st=S.st,a=analyse(),ins=insights(a);
+    return '<div class="grid2">'+wcard('status','根據現時數據，詳細解釋我嘅蚊患風險同建議')+
+      '<div>'+wcard('forecast','分析未來三日蚊患預測同出行建議')+wcard('sensors','檢查我嘅感測器有冇異常')+'</div></div>'+
+      card('全部智能洞察',ins.length+' 項',ins.map(t=>'<div class="tip"><span>'+t.i+'</span><div><b>'+esc(t.t)+'</b><div class="muted" style="font-size:12.5px">'+esc(t.p)+'</div>'+(t.act?'<button class="bn" style="margin-top:6px;padding:6px 11px;font-size:12.5px" onclick="'+t.act[1]+'">'+esc(t.act[0])+'</button>':'')+'</div></div>').join('')||'<div class="muted">暫無</div>')+
+      card('快捷操作','','<div class="btns"><button class="bn '+(st.relay.on?'g':'p')+'" onclick="toggleRelay()">'+ic('power')+(st.relay.on?'關閉驅蚊器':'開啟驅蚊器')+'</button><button class="bn r" onclick="openSheet(\'ovRep\')">'+ic('bug')+'報告蚊蹤</button><button class="bn" onclick="cmd(\'sync\').then(()=>{loadDB();loadHKO();toast(\'🔄 同步中\')})">'+ic('refresh')+'同步數據</button><button class="bn" onclick="go(\'agent\');quickAsk(\'幫我寫一份今日完整防蚊報告\')">'+ic('sparkles')+'AI 完整報告</button></div>')},
+  map(){FULLMAP=true;const h=W.map();FULLMAP=false;
+    return '<div class="w">'+h+'</div>'+card('數據來源','','<div class="kv"><span>網絡讀數</span><b>'+S.db.length+'</b><span>有座標</span><b>'+S.db.filter(p=>p.la!=null).length+'</b><span>有網絡數據地區</span><b>'+(S.dist?S.dist.filter(d=>d[3]).length:0)+' / 18</b><span>其餘地區</span><b>天文台／本機估算</b></div><div class="btns" style="margin-top:10px"><button class="bn" onclick="loadDB().then(()=>toast(\'已更新\'))">'+ic('refresh')+'重新載入</button>'+askBtn('全港邊區最危險？我應該點樣避開？')+'</div>')},
+  trend(){const h=S.hist[TR]||[],rs=stats(h.map(x=>x[3])),ts=stats(h.map(x=>x[1])),a=analyse();
+    return '<div class="w"><h5><span>'+(TR==='l'?'近 24 小時':'近 3 小時')+'</span><span class="seg"><button class="'+(TR==='s'?'on':'')+'" onclick="TR=\'s\';loadHist(\'s\').then(()=>renderView(1))">3 小時</button><button class="'+(TR==='l'?'on':'')+'" onclick="TR=\'l\';loadHist(\'l\').then(()=>renderView(1))">24 小時</button></span></h5>'+(h.length>1?'<canvas class="ch" data-ch="s" style="height:200px"></canvas><div class="lg"><span><i style="background:#7c8cff"></i>風險</span><span><i style="background:#f87171"></i>溫度</span><span><i style="background:#22d3ee"></i>濕度</span></div>':'<div class="muted">累積數據中…</div>')+'</div>'+
+      card('統計及預測',askBtn('分析我嘅風險趨勢，接落嚟幾個鐘會點？'),'<div class="tiles t4">'+[['平均風險',isFinite(rs.avg)?rs.avg.toFixed(0)+'%':'--'],['最高',isFinite(rs.mx)?rs.mx+'%':'--'],['1 小時預測',a.f1+'%'],['3 小時預測',a.f3+'%'],['趨勢',(a.slopeH>0?'+':'')+a.slopeH.toFixed(1)+'%/h'],['溫度波幅',isFinite(ts.sd)?'±'+ts.sd.toFixed(1)+'°':'--'],['露點',a.dp.toFixed(1)+'°'],['體感',a.hi.toFixed(1)+'°']].map(x=>'<div class="tile"><small>'+x[0]+'</small><b>'+x[1]+'</b></div>').join('')+'</div>')+
+      '<div class="btns"><button class="bn" onclick="exportCSV()">'+ic('download')+'匯出 CSV</button></div>'},
+  device(){const st=S.st,s=st.s,y=st.sys,c=st.cfg;
+    return card('驅蚊器','','<div style="display:flex;align-items:center;gap:16px"><button class="bigpwr'+(st.relay.on?' on':'')+'" onclick="toggleRelay()">'+ic('power')+'</button><div style="flex:1"><b style="font-size:19px">'+(st.relay.on?'運作中':'已關閉')+'</b><div class="muted" style="font-size:12.5px">'+(st.relay.on?'已運行 '+Math.floor(st.relay.secs/60)+' 分鐘（最長 30 分鐘）':st.relay.cool?'冷卻中，'+Math.ceil(st.relay.cool/60)+' 分鐘後可自動開啟':'')+'</div></div></div>'+
+      '<div class="row"><div>自動模式<small>風險 ≥ '+c.thr+'% 自動開，回落 8% 後關</small></div><label class="sw"><input type="checkbox" '+(st.relay.auto?'checked':'')+' onchange="cmd(this.checked?\'auto_on\':\'auto_off\').then(()=>toast(this.checked?\'🤖 自動模式\':\'🔧 手動模式\'))"><span></span></label></div>'+
+      '<div class="row" style="border:0"><div>警報門檻 <b id="thrD">'+c.thr+'</b>%</div></div><input type="range" min="30" max="95" value="'+c.thr+'" oninput="$(\'#thrD\').textContent=this.value" onchange="saveSet({thr:+this.value}).then(()=>toast(\'已更新門檻\'))">')+
+      wcard('sensors','檢查我嘅感測器有冇異常')+
+      card('硬件測試','','<div class="btns"><button class="bn" onclick="cmd(\'led_r\')">🔴 紅</button><button class="bn" onclick="cmd(\'led_g\')">🟢 綠</button><button class="bn" onclick="cmd(\'led_b\')">🔵 藍</button><button class="bn" onclick="cmd(\'buzz\')">🔊 蜂鳴</button><button class="bn" onclick="cmd(\'sync\').then(()=>toast(\'🔄 同步中\'))">'+ic('refresh')+'同步</button></div>')+
+      card('診斷','','<div class="kv"><span>模式</span><b>'+(S.mode==='sim'?'示範':'ESP8266')+'</b><span>IP</span><b>'+esc(y.ip)+'</b><span>Wi-Fi</span><b>'+y.rssi+' dBm</b><span>可用記憶體</span><b>'+(y.heap?(y.heap/1024).toFixed(1)+' KB':'--')+(y.block?' · 最大區塊 '+(y.block/1024).toFixed(1)+' KB':'')+'</b><span>運行時間</span><b>'+Math.floor(st.up/3600)+' 時 '+Math.floor(st.up%3600/60)+' 分</b><span>網絡數據</span><b>'+(st.net.ok?st.net.n+' 筆':'未連上')+'</b><span>天文台</span><b>'+(st.hko&&st.hko.ok?'正常':'未連上')+'</b><span>溫濕度感測器</span><b>'+(s.dhtOK?'正常':'失敗 '+s.dhtFail+' 次')+'</b></div>'+
+        '<div class="btns" style="margin-top:10px"><button class="bn" onclick="testAI()">'+ic('zap')+'測試 AI 連線</button></div><div id="aiTest" class="muted" style="font-size:12.5px;margin-top:6px"></div>')},
+  settings(){const c=S.st.cfg;
+    return card('個人及位置','','<label class="fl" style="margin-top:0">你的名字</label><input class="in" id="sNick" maxlength="20" value="'+esc(c.nick||'')+'">'+
+      '<label class="fl">所在地區</label><div style="display:flex;gap:8px"><select class="in" id="sDist">'+DN.map((d,i)=>'<option value="'+i+'"'+(i==c.dist?' selected':'')+'>'+d+'</option>').join('')+'</select><button class="bn" onclick="gps()">'+ic('pin')+'</button></div>')+
+      card('AI 助手','','<label class="fl" style="margin-top:0">主要 AI：NVIDIA 模型</label><div style="display:flex;gap:8px"><select class="in" id="sModel"></select><button class="bn" onclick="loadModels(true)">'+ic('refresh')+'</button></div>'+
+      '<div class="row"><div>讓 AI 直接操作裝置<small>關閉時每次操作會先問你</small></div><label class="sw"><input type="checkbox" id="sAuto" '+(P.auto?'checked':'')+'><span></span></label></div>'+
+      '<div class="row" style="border:0"><div>後備 AI<small>NVIDIA 失敗時自動改用 Pollinations（免金鑰）</small></div><b style="color:var(--g)">已啟用</b></div>')+
+      card('風險模型','','<label class="fl" style="margin-top:0">溫度權重 <b id="wTv">'+c.wT+'</b></label><input type="range" id="sWT" min="0" max="100" value="'+c.wT+'" oninput="$(\'#wTv\').textContent=this.value">'+
+      '<label class="fl">濕度權重 <b id="wHv">'+c.wH+'</b></label><input type="range" id="sWH" min="0" max="100" value="'+c.wH+'" oninput="$(\'#wHv\').textContent=this.value">'+
+      (S.st.pend&&S.st.pend.has?'<div class="act"><b>🤖 AI 建議：溫度 '+S.st.pend.wT+' / 濕度 '+S.st.pend.wH+'</b><div class="why">'+esc(S.st.pend.why||'')+'</div><button class="bn p" onclick="cmd(\'pend_accept\').then(()=>{toast(\'已套用\');renderView(1)})">接受</button> <button class="bn" onclick="cmd(\'pend_reject\').then(()=>renderView(1))">拒絕</button></div>':'')+
+      '<div class="btns" style="margin-top:8px"><button class="bn" onclick="cmd(\'weights_reset\').then(()=>{toast(\'已重設\');setTimeout(()=>renderView(1),300)})">重設 50/50</button></div>')+
+      card('通知及裝置','','<div class="row"><div>高風險通知</div><label class="sw"><input type="checkbox" id="sNotify" '+(P.notify?'checked':'')+'><span></span></label></div>'+
+      '<div class="row"><div>提示音</div><label class="sw"><input type="checkbox" id="sSound" '+(P.sound?'checked':'')+'><span></span></label></div>'+
+      '<div class="row"><div>裝置蜂鳴器<small>危急時響</small></div><label class="sw"><input type="checkbox" id="sBuzz" '+(c.buzz?'checked':'')+'><span></span></label></div>'+
+      '<div class="row"><div>裝置省電模式</div><label class="sw"><input type="checkbox" id="sBat" '+(c.bat?'checked':'')+'><span></span></label></div>'+
+      '<div class="row"><div>靜默時段<small>停用蜂鳴器及自動驅蚊</small></div><div style="display:flex;gap:6px;align-items:center"><input class="in" type="number" id="sQs" min="0" max="23" value="'+c.qs+'" style="width:64px">–<input class="in" type="number" id="sQe" min="0" max="23" value="'+c.qe+'" style="width:64px"></div></div>'+
+      '<div class="row" style="border:0"><div>淺色主題</div><label class="sw"><input type="checkbox" id="sTheme" '+(P.theme==='light'?'checked':'')+'><span></span></label></div>')+
+      '<button class="bn p" style="width:100%;justify-content:center;padding:13px;margin-bottom:12px" onclick="savePage()">'+ic('check')+'儲存全部設定</button>'+
+      card('資料','','<div class="btns"><button class="bn" onclick="exportCSV()">'+ic('download')+'匯出 CSV</button><button class="bn" onclick="newChat();toast(\'已清除對話\')">清除對話</button><button class="bn" style="color:var(--r)" onclick="if(confirm(\'清除所有本機資料？\')){Object.keys(localStorage).filter(k=>k.startsWith(\'vm.\')).forEach(k=>localStorage.removeItem(k));location.reload()}">重設 App</button></div>')}
+};
+async function savePage(){try{
+  const o={nick:$('#sNick').value.trim().slice(0,20),dist:+$('#sDist').value,wT:+$('#sWT').value,wH:+$('#sWH').value,buzz:$('#sBuzz').checked?1:0,bat:$('#sBat').checked?1:0,qs:clamp(+$('#sQs').value|0,0,23),qe:clamp(+$('#sQe').value|0,0,23)};
+  const m=$('#sModel').value;if(m){P.model=m;o.model=m}
+  await API.settings(o);P.auto=$('#sAuto').checked;P.sound=$('#sSound').checked;P.theme=$('#sTheme').checked?'light':'dark';
+  if($('#sNotify').checked&&!P.notify&&'Notification'in window)Notification.requestPermission();P.notify=$('#sNotify').checked;
+  saveP();applyTheme();toast('✅ 設定已儲存');await tick();S.dist=interpDistricts(S.db,S.st.cfg);loadHKO();renderView(1)}catch(e){toast('❌ 儲存失敗')}}
+function toggleTheme(){P.theme=P.theme==='light'?'dark':'light';saveP();applyTheme();drawCharts()}
+function exportCSV(){const h=(S.hist.l||[]).concat(S.hist.s||[]);let c='time,temp_c,humidity,risk\n'+h.map(x=>new Date(x[0]*1000).toISOString()+','+x[1]+','+x[2]+','+x[3]).join('\n');
+  if(S.dist)c+='\n\ndistrict,temp_c,humidity,risk,source\n'+S.dist.map((d,i)=>DEN[i]+','+d[0]+','+d[1]+','+d[2]+','+(d[3]?'network':'estimate')).join('\n');
+  const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([c],{type:'text/csv'}));a.download='vectormind-'+Date.now()+'.csv';a.click();toast('📥 已匯出')}
+async function testAI(){const o=$('#aiTest');o.textContent='測試中…';const t0=performance.now(),msgs=[{role:'user',content:'Reply with: OK'}];let out=[];
+  try{if(!P.model)await loadModels();const r=await API.chat({model:P.model,messages:msgs,max_tokens:8,stream:false});const t=await r.text();out.push(r.ok?'✅ NVIDIA 正常（'+Math.round(performance.now()-t0)+' ms）':'❌ NVIDIA '+r.status+'：'+esc(t.slice(0,120)))}catch(e){out.push('❌ NVIDIA：'+esc(e.message))}
+  const t1=performance.now();try{const t=await pollinations(msgs);out.push(t?'✅ Pollinations 後備正常（'+Math.round(performance.now()-t1)+' ms）':'❌ Pollinations 空白')}catch(e){out.push('❌ Pollinations：'+esc(e.message))}
+  o.innerHTML=out.join('<br>')}
+</script>
+<script>
+/* ===================== VectorMind v23.1 · AI-agent-first UI ===================== */
+IC.pin='<path d="M12 22s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>';
+const SHOW=['status','map','chart','forecast','sensors'];
+
+/* ---------- state refresh ---------- */
+async function tick(){if(document.hidden)return;try{const st=await API.state();S.fails=0;onState(st)}catch(e){S.fails++;paintConn()}}
+function onState(st){
+  const first=!S.st;S.st=st;
+  if(st.hko&&st.hko.ok&&S.mode==='live')S.hko=Object.assign(S.hko||{},{t:num(st.hko.t),h:num(st.hko.h),rain:num(st.hko.rain),uv:st.hko.uv,warn:st.hko.warn});
+  const r=st.r.risk,thr=st.cfg.thr||70;
+  if(S.prevRisk!=null&&S.prevRisk<thr&&r>=thr&&Date.now()-S.lastAlert>6e5){S.lastAlert=Date.now();proactiveAlert()}
+  S.prevRisk=r;if(!S.dist)S.dist=interpDistricts([],st.cfg);paintStrip();paintConn();renderView();
+  if(first&&!S.chat.length)welcome();
+  if(S.chat.some(m=>m.widgets&&m.widgets.length))liveWidgets();
+}
+function refreshUI(){if(S.st){paintStrip();liveWidgets();renderView()}}
+function paintConn(){
+  $('#dot').className='dot '+(S.mode==='sim'?'sim':S.fails>=2?'err':'live');
+  $('#conn').textContent=S.mode==='sim'?'示範模式 · 未連接裝置':S.fails>=2?'裝置連線中斷，重試中…':'裝置在線'+(S.st?' · '+DN[S.st.cfg.dist]:'');
+  const n=$('#note'),st=S.st;
+  if(st&&st.hko&&st.hko.warn){n.className='note show';n.textContent='天文台：'+String(st.hko.warn).slice(0,120)}
+  else if(S.hko&&S.hko.warn){n.className='note show';n.textContent='天文台：'+String(S.hko.warn).slice(0,120)}
+  else if(st&&st.r.risk>=80){n.className='note show crit';n.textContent='⚠️ 風險危急，建議即時開啟驅蚊器及關窗。'}
+  else n.className='note'}
+function paintStrip(){
+  const st=S.st;if(!st)return;const r=st.r.risk,L=lvl(r);
+  $('#ringFg').style.strokeDashoffset=138.2*(1-r/100);$('#ringFg').setAttribute('stroke',L[3]);
+  countUp($('#ringN'),r);$('#ringN').style.color=L[3];$('#ring').classList.toggle('alarm',r>=80);
+  $('#sLvl').innerHTML='<span style="color:'+L[3]+'">'+L[1]+'風險</span> · '+DN[st.cfg.dist];
+  $('#sLine').textContent=st.s.t.toFixed(1)+'°C · 濕度 '+Math.round(st.s.h)+'%'+(S.hko&&isFinite(S.hko.t)?' · 天文台 '+S.hko.t+'°':'');
+  $('#pwr').classList.toggle('on',st.relay.on);$('#pwrT').textContent=st.relay.on?'運作中':'驅蚊器'}
+
+/* ---------- data loaders ---------- */
+async function loadHist(r){try{S.hist[r||'s']=await API.hist(r||'s')}catch(e){}}
+async function loadDB(){
+  try{S.db=normRows(await API.db());if(!S.db.length)S.db=normRows(await API.db('t,h,la,lo'))}catch(e){}
+  S.dbAt=Date.now();S.dist=interpDistricts(S.db,S.st&&S.st.cfg);
+  if(S.mode==='live'&&!S.db.length){try{const d=await API.districts();if(d&&d.d)S.dist=d.d}catch(e){}}
+  refreshUI()}
+
+/* ---------- device commands ---------- */
+async function cmd(a){const r=await API.cmd(a);setTimeout(tick,200);return r}
+async function saveSet(o){await API.settings(o);setTimeout(tick,200)}
+async function toggleRelay(){try{const on=!(S.st&&S.st.relay.on);await cmd(on?'relay_on':'relay_off');toast(on?'🦟 驅蚊器已開啟':'⭕ 驅蚊器已關閉');beep(on?880:520,.1)}catch(e){toast('❌ 操作失敗')}}
+let VIEW='agent';
+function go(v){const map={status:'home',chart:'trend',sensors:'device',forecast:'home'};v=map[v]||v;if(!document.getElementById('v-'+v))v='agent';VIEW=v;
+  $$('.view').forEach(e=>e.classList.toggle('on',e.id==='v-'+v));$$('#tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
+  if(v==='trend')loadHist(TR).then(renderView);if(v==='map'&&!S.db.length)loadDB();renderView(true);if(v==='agent'){const b=$('#msgs');b.scrollTop=b.scrollHeight}}
+
+/* ---------- widgets (rendered inside chat) ---------- */
+function ringSVG(r,size){const L=lvl(r),c=2*Math.PI*22;return '<div class="ring'+(r>=80?' alarm':'')+'" style="width:'+size+'px;height:'+size+'px"><svg viewBox="0 0 52 52"><circle class="bgc" cx="26" cy="26" r="22"/><circle class="fg" cx="26" cy="26" r="22" stroke="'+L[3]+'" stroke-dasharray="'+c+'" stroke-dashoffset="'+(c*(1-r/100))+'"/></svg><span style="color:'+L[3]+'">'+r+'</span></div>'}
+function bar(lbl,v,max,c,txt){return '<div class="bar"><div class="l"><span>'+lbl+'</span><b style="color:'+c+'">'+txt+'</b></div><div class="t"><div class="f" style="width:'+clamp(v/max*100,0,100)+'%;background:'+c+'"></div></div></div>'}
+const W={
+  status(){const st=S.st,a=analyse();if(!st||!a)return '';const r=st.r,L=lvl(r.risk),p=a.parts;
+    const top=Object.entries({溫度:p.temp,濕度:p.hum,時段:p.time,雨量:p.rain,附近活動:p.act}).sort((x,y)=>y[1]-x[1])[0][0];
+    const tips=insights(a).slice(0,3);
+    return '<h5><span>現時風險</span><span>信心 '+Math.round(r.conf)+'%</span></h5><div class="big">'+ringSVG(r.risk,78)+'<div><span class="lvl" style="background:'+L[3]+'22;color:'+L[3]+'">'+L[1]+' · '+L[2]+'</span><div style="font-size:13.5px">主要原因：<b>'+top+'</b><br><span class="muted">趨勢 '+(a.slopeH>0?'+':'')+a.slopeH.toFixed(1)+'%/小時 · 1 小時後約 '+a.f1+'%</span></div></div></div>'+
+      bar('🌡️ 溫度',p.temp,45,'#f87171',st.s.t.toFixed(1)+'°C')+bar('💧 濕度',p.hum,45,'#22d3ee',Math.round(st.s.h)+'%')+bar('🌆 晨昏高峰',p.time,12,'#c084fc',a.toPeak<90?Math.round(a.toPeak)+' 分鐘後':'未到')+
+      (tips.length?'<div style="margin-top:8px">'+tips.map(t=>'<div class="tip"><span>'+t.i+'</span><div><b>'+esc(t.t)+'</b><div class="muted" style="font-size:12.5px">'+esc(t.p)+'</div>'+(t.act?'<button class="bn" style="margin-top:6px;padding:6px 11px;font-size:12.5px" onclick="'+t.act[1]+'">'+esc(t.act[0])+'</button>':'')+'</div></div>').join('')+'</div>':'')},
+  map(){const d=S.dist;if(!d)return '<h5>全港 18 區</h5><div class="muted">正在載入感測網絡…</div>';
+    const me=S.st?S.st.cfg.dist:-1,Wd=360,Ht=240,x=lo=>(lo-113.85)/(114.33-113.85)*(Wd-30)+15,y=la=>(22.53-la)/(22.53-22.2)*(Ht-30)+15;
+    let s='<svg class="mapsvg" viewBox="0 0 '+Wd+' '+Ht+'">';
+    S.db.filter(p=>p.la!=null&&p.la>22.1&&p.la<22.6&&p.lo>113.8&&p.lo<114.4).slice(-400).forEach(p=>{s+='<circle cx="'+x(p.lo).toFixed(1)+'" cy="'+y(p.la).toFixed(1)+'" r="1.6" fill="#c084fc" opacity=".55"/>'});
+    d.forEach((v,i)=>{const c=rc(v[2]),cx=x(DC[i][1]),cy=y(DC[i][0]),rr=7+v[2]/10;
+      s+='<circle class="d" cx="'+cx.toFixed(1)+'" cy="'+cy.toFixed(1)+'" r="'+rr.toFixed(1)+'" fill="'+c+'" fill-opacity=".75" stroke="'+(i===me?'#fff':c)+'" stroke-width="'+(i===me?2.5:1)+'" onclick="askDistrict('+i+')"><title>'+DN[i]+' '+v[2]+'%</title></circle>';
+      s+='<text x="'+cx.toFixed(1)+'" y="'+(cy+rr+9).toFixed(1)+'" text-anchor="middle">'+DN[i]+(i===me?' ⭐':'')+'</text>'});
+    s+='</svg>';const rk=d.map((v,i)=>({i,r:v[2],src:v[3]})).sort((a,b)=>b.r-a.r).slice(0,FULLMAP?18:5);
+    return '<h5><span>全港 18 區風險</span><span>'+S.db.length+' 個網絡讀數</span></h5>'+s+'<div class="muted" style="font-size:11.5px;margin:6px 0 4px">撳任何一區，AI 會為你分析。紫點＝網絡感測器'+(S.db.length?'':'（網絡未連上，暫用天文台／本機估算）')+'。</div>'+rk.map((x,k)=>'<div class="rk" onclick="askDistrict('+x.i+')"><span>'+(k+1)+'. '+DN[x.i]+'</span><span class="pill" style="background:'+rc(x.r)+'22;color:'+rc(x.r)+'">'+x.r+'%</span></div>').join('')},
+  chart(){const h=S.hist[TR]||[];if(!h||h.length<2)return '<h5>'+(TR==='l'?'近 24 小時':'近 3 小時')+'趨勢</h5><div class="muted">累積數據中（每分鐘記錄一次）…</div>';
+    const rs=stats(h.map(x=>x[3]));return '<h5><span>'+(TR==='l'?'近 24 小時':'近 3 小時')+'趨勢</span><span>平均 '+rs.avg.toFixed(0)+'% · 最高 '+rs.mx+'%</span></h5><canvas class="ch" data-ch="s"></canvas><div class="lg"><span><i style="background:#7c8cff"></i>風險</span><span><i style="background:#f87171"></i>溫度</span><span><i style="background:#22d3ee"></i>濕度</span></div>'},
+  forecast(){const f=S.fc;if(!f||!f.length)return '<h5>未來三日</h5><div class="muted">正在讀取天文台預報…</div>';
+    return '<h5><span>未來三日蚊患風險</span><span>天文台預報</span></h5><div class="fc">'+f.slice(0,3).map(x=>'<div><small>'+x.date.slice(4,6)+'/'+x.date.slice(6)+' '+(x.wk||'').replace('星期','週')+'</small><b style="color:'+rc(x.risk)+'">'+x.risk+'%</b><small>'+(isFinite(x.tmin)?x.tmin+'–'+x.tmax+'°':'')+' 雨'+(x.psr||'-')+'</small></div>').join('')+'</div>'},
+  sensors(){const st=S.st;if(!st)return '';const s=st.s;
+    return '<h5><span>裝置感測器</span><span>'+(S.mode==='sim'?'示範數據':'即時')+'</span></h5><div class="tiles t4"><div class="tile"><small>溫度</small><b>'+s.t.toFixed(1)+'°</b></div><div class="tile"><small>濕度</small><b>'+Math.round(s.h)+'%</b></div><div class="tile"><small>距離</small><b>'+Math.round(s.ult)+'<small style="display:inline"> cm</small></b></div><div class="tile"><small>紅外觸發</small><b>'+s.irCnt+'</b></div></div>'+
+      '<div class="muted" style="font-size:12.5px;margin-top:8px">'+(s.dhtOK?'✅ 溫濕度感測器正常':'⚠️ 溫濕度感測器讀取失敗')+' · '+(s.motion||s.ir?'👁️ 剛偵測到活動':'附近無活動')+' · 驅蚊器'+(st.relay.on?'運作中':'關閉')+(st.relay.auto?'（自動）':'')+'</div>'}
+};
+function drawCharts(root){(root||document).querySelectorAll('canvas[data-ch]').forEach(cv=>{const h=S.hist[TR]||[];if(!h||h.length<2)return;
+  const r=devicePixelRatio||1,w=cv.clientWidth,H=cv.clientHeight;if(!w)return;cv.width=w*r;cv.height=H*r;const x=cv.getContext('2d');x.scale(r,r);
+  const line=(arr,mn,mx,col,fill)=>{x.beginPath();arr.forEach((v,i)=>{const px=i/(arr.length-1)*w,py=H-6-(v-mn)/((mx-mn)||1)*(H-14);i?x.lineTo(px,py):x.moveTo(px,py)});x.strokeStyle=col;x.lineWidth=2;x.stroke();
+    if(fill){x.lineTo(w,H);x.lineTo(0,H);x.closePath();const g=x.createLinearGradient(0,0,0,H);g.addColorStop(0,col+'55');g.addColorStop(1,col+'00');x.fillStyle=g;x.fill()}};
+  x.strokeStyle='rgba(128,128,160,.15)';x.lineWidth=1;[.25,.5,.75].forEach(k=>{x.beginPath();x.moveTo(0,H*k);x.lineTo(w,H*k);x.stroke()});
+  const ts=h.map(v=>v[1]);line(h.map(v=>v[3]),0,100,'#7c8cff',true);line(h.map(v=>v[2]),0,100,'#22d3ee');line(ts,Math.min(...ts)-1,Math.max(...ts)+1,'#f87171')})}
+function liveWidgets(){S.chat.forEach((m,i)=>(m.widgets||[]).forEach((w,j)=>{const el=document.getElementById('w'+i+'_'+j);if(el&&W[w]){el.innerHTML=W[w]();drawCharts(el)}}))}
+function askDistrict(i){go('agent');quickAsk('分析一下'+DN[i]+'嘅蚊患風險，同埋去嗰度要注意咩？')}
+
+/* ---------- chat model ---------- */
+function saveChat(){LS.set('chat2',S.chat.slice(-40))}
+S.chat=LS.get('chat2',[]);
+function addWidget(m,w){m.widgets=m.widgets||[];if(W[w]&&!m.widgets.includes(w))m.widgets.push(w)}
+function needData(w){if(w==='chart')return loadHist(TR);if(w==='map'&&!S.dist)return loadDB();return Promise.resolve()}
+async function showLocal(w){await needData(w);const m={role:'assistant',content:'',widgets:[w],local:1,done:1};S.chat.push(m);saveChat();renderMsgs()}
+function welcome(){const st=S.st,a=analyse();if(!st||!a)return;const L=lvl(st.r.risk),h=new Date().getHours();
+  const hi=h<5?'夜深了':h<12?'早晨':h<18?'午安':'晚安';const tip=insights(a).find(t=>!/^(高風險|風險危急|風險偏低)/.test(t.t));
+  S.chat.push({role:'assistant',local:1,done:1,widgets:['status'],content:hi+(st.cfg.nick?'，'+st.cfg.nick:'')+'！我係 **VectorMind**，你嘅防蚊 AI 助手。\n\n'+DN[st.cfg.dist]+'而家係 **'+L[1]+'風險（'+st.r.risk+'%）**'+(tip?'，'+tip.t+'。':'。')+'\n\n你可以直接問我，或者叫我「開驅蚊器」「睇全港地圖」「聽日點樣」。'});
+  saveChat();renderMsgs()}
+function proactiveAlert(){const st=S.st;const m={role:'assistant',local:1,done:1,widgets:['status'],content:'⚠️ 留意：'+DN[st.cfg.dist]+'嘅蚊患風險剛升到 **'+st.r.risk+'%**，超過你設定嘅 '+st.cfg.thr+'% 門檻。',actions:[]};
+  if(!st.relay.on)m.actions.push({tool:'relay',args:{state:'on'},why:'風險超過門檻，建議即時開啟',st:'pending'});
+  S.chat.push(m);saveChat();renderMsgs();notify('蚊患風險 '+st.r.risk+'%',DN[st.cfg.dist]+' 已超過門檻')}
+
+/* ---------- rendering ---------- */
+function md(src){let s=esc(src);const bl=[];
+  s=s.replace(/```(\w*)\n?([\s\S]*?)```/g,(m,l,c)=>{bl.push('<pre><code>'+c+'</code></pre>');return '\u0000'+(bl.length-1)+'\u0000'});
+  s=s.replace(/`([^`\n]+)`/g,'<code>$1</code>').replace(/\*\*([^*\n]+)\*\*/g,'<b>$1</b>').replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g,'$1<i>$2</i>');
+  let html='',list=null,tbl=[];const fT=()=>{if(!tbl.length)return;html+='<table>'+tbl.filter(r=>!/^\|?\s*:?-{2,}/.test(r)).map((r,i)=>'<tr>'+r.replace(/^\||\|$/g,'').split('|').map(c=>i?'<td>'+c.trim()+'</td>':'<th>'+c.trim()+'</th>').join('')+'</tr>').join('')+'</table>';tbl=[]},fL=()=>{if(list){html+='</'+list+'>';list=null}};
+  for(const ln of s.split('\n')){if(/^\s*\|.*\|\s*$/.test(ln)){fL();tbl.push(ln.trim());continue}fT();let m;
+    if((m=ln.match(/^\s*#{1,4}\s+(.*)/))){fL();html+='<h4>'+m[1]+'</h4>'}else if((m=ln.match(/^\s*[-*•]\s+(.*)/))){if(list!=='ul'){fL();html+='<ul>';list='ul'}html+='<li>'+m[1]+'</li>'}
+    else if((m=ln.match(/^\s*\d+[.)]\s+(.*)/))){if(list!=='ol'){fL();html+='<ol>';list='ol'}html+='<li>'+m[1]+'</li>'}else if(!ln.trim())fL();else{fL();html+='<p>'+ln+'</p>'}}
+  fT();fL();return html.replace(/\u0000(\d+)\u0000/g,(m,i)=>bl[+i])}
+const stripActions=t=>String(t||'').replace(/```action[\s\S]*?(```|$)/g,'').replace(/<think>[\s\S]*?(<\/think>|$)/g,'').trim();
+function msgHTML(m,i){
+  if(m.role==='user')return '<div class="msg u"><div class="bub">'+esc(m.content).replace(/\n/g,'<br>')+'</div></div>';
+  const txt=stripActions(m.content);
+  const body=txt?md(txt):(m.err||m.local?'':'<span class="typing"><i></i><i></i><i></i></span>');
+  const acts=(m.actions||[]).map((a,j)=>'<div class="act"><b>⚡ '+actLabel(a)+'</b>'+(a.why?'<div class="why">'+esc(a.why)+'</div>':'<div class="why"></div>')+
+    (a.st==='pending'?'<button class="bn p" onclick="runAction('+i+','+j+')">確認執行</button> <button class="bn" onclick="skipAction('+i+','+j+')">唔使</button>':'<span class="'+a.st+'">'+{done:'✓ 已完成',fail:'✗ 執行失敗',skip:'已略過'}[a.st]+'</span>')+'</div>').join('');
+  const ws=(m.widgets||[]).map((w,j)=>'<div class="w" id="w'+i+'_'+j+'">'+(W[w]?W[w]():'')+'</div>').join('');
+  const meta=m.done&&!m.local&&txt?'<div class="meta">'+(m.via==='Pollinations'?'<span class="via">後備 AI · Pollinations</span>':'')+'<span>'+(m.ms?(m.ms/1000).toFixed(1)+' 秒':'')+'</span><button onclick="copyMsg('+i+')">複製</button>'+(i===S.chat.length-1?'<button onclick="regen()">重新回答</button>':'')+'</div>':'';
+  return '<div class="msg"><div class="av">'+ic('logo')+'</div><div class="col">'+(body||m.err?'<div class="bub" id="b'+i+'">'+body+(m.err?'<div style="color:var(--r)">⚠️ '+esc(m.err)+'</div>':'')+'</div>':'')+ws+acts+meta+'</div></div>'}
+function renderMsgs(){const box=$('#msgs');box.innerHTML=S.chat.map(msgHTML).join('');drawCharts(box);box.scrollTop=box.scrollHeight}
+function paintLive(m){const i=S.chat.indexOf(m),el=$('#b'+i);if(!el){renderMsgs();return}const t=stripActions(m.content);
+  el.innerHTML=t?md(t).replace(/<\/(p|li|h4)>(?![\s\S]*<\/(p|li|h4)>)/,'<span class="cur"></span></$1>'):'<span class="typing"><i></i><i></i><i></i></span>';
+  const b=$('#msgs');if(b.scrollHeight-b.scrollTop-b.clientHeight<200)b.scrollTop=b.scrollHeight}
+function copyMsg(i){navigator.clipboard&&navigator.clipboard.writeText(stripActions(S.chat[i].content)).then(()=>toast('已複製'))}
+function newChat(){if(S.busy&&S.ctrl)S.ctrl.abort();S.chat=[];saveChat();welcome();if(!S.chat.length)renderMsgs()}
+
+/* ---------- agent tools ---------- */
+const TOOLS={
+  relay:{dev:1,l:a=>a.state==='off'?'關閉驅蚊器':'開啟驅蚊器',run:a=>cmd(a.state==='off'?'relay_off':'relay_on')},
+  relay_auto:{dev:1,l:a=>a.enabled===false?'關閉自動驅蚊':'開啟自動驅蚊',run:a=>cmd(a.enabled===false?'auto_off':'auto_on')},
+  set_threshold:{dev:1,l:a=>'警報門檻改為 '+a.value+'%',run:a=>saveSet({thr:clamp(Math.round(+a.value||70),30,95)})},
+  set_weights:{dev:1,l:a=>'權重：溫度 '+a.wT+' / 濕度 '+a.wH,run:a=>saveSet({wT:clamp(Math.round(+a.wT||50),0,100),wH:clamp(Math.round(+a.wH||50),0,100)})},
+  set_district:{dev:1,l:a=>'地區改為 '+DN[clamp(+a.id|0,0,17)],run:a=>saveSet({dist:clamp(+a.id|0,0,17)})},
+  report_sighting:{dev:1,l:a=>'報告蚊蹤（程度 '+(a.severity||1)+'）',run:a=>API.report(clamp(+a.severity||1,1,3),'AI').then(tick)},
+  test_hw:{dev:1,l:a=>'測試硬件：'+(a.what||'g'),run:a=>cmd({r:'led_r',g:'led_g',b:'led_b',buzz:'buzz'}[a.what]||'led_g')},
+  remind:{l:a=>'設定 '+(a.minutes||10)+' 分鐘後提醒',run:a=>{const m=clamp(+a.minutes||10,1,240);setTimeout(()=>notify('⏰ VectorMind 提醒',a.text||'記得做好防蚊'),m*6e4)}},
+  refresh:{l:()=>'同步雲端數據',run:()=>cmd('sync').then(()=>{loadDB();loadHKO()})}
+};
+const actLabel=a=>TOOLS[a.tool]?TOOLS[a.tool].l(a.args||{}):a.tool;
+function parseActions(t){const out=[],re=/```action\s*([\s\S]*?)```/g;let m;while((m=re.exec(t))){try{let j=JSON.parse(m[1].trim());if(!Array.isArray(j))j=[j];out.push(...j.filter(x=>x&&x.tool))}catch(e){}}return out}
+async function runAction(i,j){const a=S.chat[i]&&S.chat[i].actions[j];if(!a||a.st!=='pending')return;try{await TOOLS[a.tool].run(a.args||{});a.st='done';beep(880,.08)}catch(e){a.st='fail'}saveChat();renderMsgs()}
+function skipAction(i,j){S.chat[i].actions[j].st='skip';saveChat();renderMsgs()}
+function autoWidgets(q){const w=[];
+  if(/地圖|map|邊區|邊度|全港|各區|district|最危險/i.test(q))w.push('map');
+  if(/趨勢|圖表|chart|歷史|trend|變化|過去/i.test(q))w.push('chart');
+  if(/預測|聽日|明天|後日|forecast|未來|週末|周末|下星期|天氣/i.test(q))w.push('forecast');
+  if(/感測|sensor|裝置|異常|device|硬件/i.test(q))w.push('sensors');
+  if(!w.length&&/風險|情況|點樣|而家|現在|status|risk|安全/i.test(q))w.push('status');
+  return w}
+
+/* ---------- AI (NVIDIA via BlockPilot) ---------- */
+const BAD=/embed|rerank|guard|reward|safety|clip|parse|vila|neva|kosmos|fuyu|paligemma|deplot|retriev|bge|e5-|ocr|asr|tts|riva|cosmos|sdxl|flux|whisper|detector|topic-control|shieldgemma|vision|-vl|vlm|audio|image|video|pii|calibration|starcoder|codegemma|coder/i;
+const PREF=[/llama-3\.3-70b-instruct/i,/qwen.*(2\.5|3).*(72b|235b|instruct)/i,/deepseek-(v3|r1)/i,/llama-3\.1-(70b|405b)-instruct/i,/nemotron.*(super|ultra|70b)/i,/mistral.*(large|medium|small)/i,/llama.*instruct/i,/gemma.*it/i,/instruct|chat/i];
+function rankModels(ids){return ids.filter(id=>!BAD.test(id)).map(id=>{const k=PREF.findIndex(r=>r.test(id));return{id,k:k<0?99:k}}).sort((a,b)=>a.k-b.k||a.id.localeCompare(b.id)).map(x=>x.id)}
+async function loadModels(force){const c=LS.get('models',null);
+  if(!force&&c&&Date.now()-c.at<864e5&&c.ids.length)S.models=c.ids;
+  else{try{let j;try{j=await API.models()}catch(e){j=await jfetch(CFG.WORKER+'/v1/models',null,15000)}S.models=rankModels((j.data||[]).map(m=>m.id).filter(Boolean));LS.set('models',{at:Date.now(),ids:S.models});if(force)toast('已載入 '+S.models.length+' 個模型')}catch(e){if(c)S.models=c.ids;if(force)toast('無法載入模型：'+e.message)}}
+  const dev=S.st&&S.st.cfg.model;if(!P.model||!S.models.includes(P.model))P.model=dev&&S.models.includes(dev)?dev:(S.models[0]||P.model);saveP();
+  const sel=$('#sModel');if(sel){sel.innerHTML=(S.models.map(m=>'<option value="'+esc(m)+'">'+esc(m.split('/').pop())+'</option>').join(''))||'<option value="">（載入失敗，會用後備 AI）</option>';sel.value=P.model}}
+function ctx(){const st=S.st,a=analyse();if(!st||!a)return '{}';const s=st.s,r=st.r,c=st.cfg;
+  return JSON.stringify({時間:new Date(st.epoch*1000).toLocaleString('zh-HK',{hour12:false}),地區:DN[c.dist],用戶:c.nick||undefined,風險:r.risk,等級:lvl(r.risk)[1],信心:Math.round(r.conf),
+    分層:{本機:r.local,網絡:r.netOK?r.net:'無',用戶報告:r.user},因素:Object.fromEntries(Object.entries(a.parts).map(([k,v])=>[k,+v.toFixed(1)])),趨勢每小時:+a.slopeH.toFixed(1),預測1h:a.f1,
+    感測:{溫度:s.t,濕度:s.h,露點:+a.dp.toFixed(1),移動:s.motion||s.ir,DHT正常:s.dhtOK},驅蚊器:{開:st.relay.on,自動:st.relay.auto},門檻:c.thr,報告數:st.reports,
+    天文台:S.hko?{溫度:S.hko.t,濕度:S.hko.h,雨量mm:S.hko.rain,警告:S.hko.warn||'無'}:'無',
+    全港:{讀數:S.db.length,最高:a.ranked.slice(0,4).map(x=>DN[x.i]+x.r+'%'),最低:a.ranked.slice(-2).map(x=>DN[x.i]+x.r+'%')},
+    三日預測:S.fc?S.fc.slice(0,3).map(x=>x.date.slice(4)+' '+x.risk+'% 雨'+x.psr):'無',叮咬高峰分鐘:Math.round(a.toPeak),模式:S.mode==='sim'?'示範':'即時'})}
+function sysPrompt(){return `你是「VectorMind」家居防蚊 AI 助手，連接一部香港家用 IoT 防蚊裝置（溫濕度、移動感測、驅蚊器），亦讀取全港感測網絡及天文台數據。
+
+規則：
+1. 用繁體中文（香港口語），用戶用英文就答英文。親切、簡短：一般 2–4 句，先講結論，引用具體數字。
+2. 只根據下面數據；冇數據就直說，唔好估。
+3. 健康問題：有發燒、出疹、關節痛要建議睇醫生。
+4. 需要顯示資料或操作裝置時，喺回覆最尾加一個 action 區塊。介面會自動顯示卡片，所以唔使喺文字重複列出全部數字。
+
+顯示工具（即時顯示卡片）：show_status、show_map、show_chart、show_forecast、show_sensors（args 用 {}）
+裝置工具：relay {"state":"on|off"}、relay_auto {"enabled":true|false}、set_threshold {"value":30-95}、set_weights {"wT":0-100,"wH":0-100}、set_district {"id":0-17}（${DN.map((d,i)=>i+'='+d).join('、')}）、report_sighting {"severity":1-3}、test_hw {"what":"r|g|b|buzz"}、remind {"minutes":1-240,"text":"…"}、refresh {}
+裝置操作要講「我會幫你…」，唔好講已經做咗。
+
+例子：
+\`\`\`action
+[{"tool":"relay","args":{"state":"on"},"why":"風險 78% 高過門檻"},{"tool":"show_status","args":{}}]
+\`\`\`
+
+即時數據：
+${ctx()}`}
+function buildMessages(){const sys={role:'system',content:sysPrompt()},enc=new TextEncoder();let bud=(S.mode==='sim'?24000:7600)-enc.encode(sys.content).length-500;const h=[];
+  for(let i=S.chat.length-1;i>=0&&h.length<10;i--){const m=S.chat[i],c=m.role==='user'?m.content.slice(0,1200):stripActions(m.content).slice(0,900);if(!c)continue;const b=enc.encode(c).length+30;if(bud-b<0&&h.length)break;bud-=b;h.unshift({role:m.role,content:c})}
+  return [sys].concat(h)}
+function friendlyErr(e){const m=String(e.message||e);if(/403/.test(m))return 'AI 代理拒絕咗呢個來源（403）。請經裝置網址使用。';if(/401/.test(m))return 'AI 代理未設定 NVIDIA 金鑰。';if(/429/.test(m))return 'AI 太繁忙，請稍後再試。';if(/Failed to fetch|NetworkError|abort/i.test(m))return '連唔到 AI，請檢查網絡。';return m.slice(0,160)}
+async function streamChat(msg,body,retry){
+  S.ctrl=new AbortController();const to=setTimeout(()=>S.ctrl&&S.ctrl.abort(),90000);let res;try{res=await API.chat(body,S.ctrl.signal)}finally{clearTimeout(to)}
+  if(!res.ok){const t=await res.text().catch(()=>'');
+    if(!retry&&(res.status===404||/model/i.test(t))&&S.models.length>1){body.model=S.models[(S.models.indexOf(body.model)+1)%S.models.length];return streamChat(msg,body,1)}
+    if(!retry&&res.status===429){await new Promise(r=>setTimeout(r,Math.min(+res.headers.get('Retry-After')||3,15)*1000));return streamChat(msg,body,1)}
+    throw new Error(res.status+' '+t.slice(0,140))}
+  const ct=res.headers.get('content-type')||'';
+  if(!body.stream||!res.body||ct.indexOf('event-stream')<0){const j=await res.json();msg.content=(j.choices&&j.choices[0].message&&j.choices[0].message.content)||'';return}
+  const rd=res.body.getReader(),dec=new TextDecoder();let buf='',last=0;
+  for(;;){const {done,value}=await rd.read();if(done)break;buf+=dec.decode(value,{stream:true});let i;
+    while((i=buf.indexOf('\n'))>=0){const ln=buf.slice(0,i).trim();buf=buf.slice(i+1);if(!ln.startsWith('data:'))continue;const d=ln.slice(5).trim();if(d==='[DONE]')continue;
+      try{const dl=JSON.parse(d).choices[0].delta||{};if(dl.content)msg.content+=dl.content}catch(e){}}
+    if(performance.now()-last>60){last=performance.now();paintLive(msg)}}}
+async function send(){
+  const inp=$('#inp'),q=inp.value.trim();if(!q||S.busy)return;inp.value='';autosize();
+  if(!P.model)await loadModels();
+  S.chat.push({role:'user',content:q});const msg={role:'assistant',content:'',widgets:[],actions:[]};S.chat.push(msg);
+  const aw=autoWidgets(q);await Promise.all(aw.map(needData));aw.forEach(w=>addWidget(msg,w));renderMsgs();
+  S.busy=true;setSend(true);const t0=performance.now();
+  const msgs=buildMessages();
+  try{if(!P.model)throw new Error('未有可用嘅 NVIDIA 模型');msg.via='NVIDIA';await streamChat(msg,{model:P.model,messages:msgs,temperature:.6,max_tokens:700,stream:true});if(!stripActions(msg.content))throw new Error('空白回覆')}
+  catch(e){if(e.name==='AbortError'&&S.stopped){if(msg.content)msg.content+='\n\n_（已停止）_'}
+    else{console.warn('NVIDIA failed',e);msg.content='';msg.via='Pollinations';paintLive(msg);
+      try{msg.content=await pollinations(msgs);if(!msg.content)throw new Error('空白回覆')}
+      catch(e2){msg.err='NVIDIA：'+friendlyErr(e)+'；後備 AI：'+friendlyErr(e2);msg.via='';if(!msg.widgets.length)addWidget(msg,'status')}}}
+  S.stopped=false;
+  msg.ms=performance.now()-t0;msg.done=1;
+  for(const a of parseActions(msg.content)){const k=String(a.tool).replace(/^show_/,'');
+    if(String(a.tool).startsWith('show_')){await needData(k);addWidget(msg,k)}
+    else if(TOOLS[a.tool])msg.actions.push({tool:a.tool,args:a.args||{},why:a.why||'',st:'pending'})}
+  S.busy=false;S.ctrl=null;setSend(false);saveChat();renderMsgs();
+  const n=S.chat.length-1;
+  for(let j=0;j<msg.actions.length;j++){const a=msg.actions[j];if(P.auto||!TOOLS[a.tool].dev)await runAction(n,j)}
+  if(msg.actions.some(a=>a.st==='pending'))beep(740,.1)}
+function quickAsk(q){$('#inp').value=q;send()}
+function regen(){if(S.busy)return;const m=S.chat.pop();if(m&&m.role==='assistant'){const u=S.chat.pop();if(u&&u.role==='user')quickAsk(u.content);else renderMsgs()}}
+function setSend(b){const s=$('#send');s.innerHTML=ic(b?'stop':'send');s.onclick=b?()=>{S.stopped=true;S.ctrl&&S.ctrl.abort()}:send}
+function autosize(){const t=$('#inp');t.style.height='auto';t.style.height=Math.min(120,t.scrollHeight)+'px'}
+function voice(){const R=window.SpeechRecognition||window.webkitSpeechRecognition;if(!R)return toast('呢個瀏覽器唔支援語音輸入');const r=new R();r.lang='yue-Hant-HK';$('#mic').classList.add('on');
+  r.onresult=e=>{$('#inp').value=e.results[0][0].transcript;send()};r.onend=()=>$('#mic').classList.remove('on');r.onerror=()=>toast('聽唔到，請再試');r.start()}
+
+/* Pollinations fallback (no key). Browser → direct; if blocked, via device /api/poll */
+async function pollinations(messages){
+  const body=JSON.stringify({model:'openai',messages,temperature:.6,max_tokens:700,referrer:'vectormind'});
+  const parse=async r=>{if(!r.ok)throw new Error('HTTP '+r.status);const t=await r.text();try{const j=JSON.parse(t);return (j.choices&&j.choices[0].message&&j.choices[0].message.content)||''}catch(e){return t}};
+  const tryF=async(u,ms)=>{const c=new AbortController();S.ctrl=c;const to=setTimeout(()=>c.abort(),ms);try{return await parse(await fetch(u,{method:'POST',headers:{'Content-Type':'application/json'},body,signal:c.signal}))}finally{clearTimeout(to)}};
+  try{return await tryF('https://text.pollinations.ai/openai',45000)}catch(e){if(S.stopped)throw e;if(S.mode!=='live')throw e}
+  return tryF('/api/poll',50000)}
+
+/* ---------- sheets ---------- */
+let sev=2;
+function openSheet(id){if(id==='ovSet')fillSettings();$('#'+id).classList.add('on')}
+function closeSheets(){$$('.ov').forEach(o=>o.classList.remove('on'))}
+async function doReport(){try{const r=await API.report(sev,$('#repNote').value.trim());closeSheets();$('#repNote').value='';toast('🦟 多謝你嘅報告！');beep(660,.12);await tick();
+  S.chat.push({role:'assistant',local:1,done:1,widgets:['status'],content:'收到你嘅蚊蹤報告（第 '+(r.cnt||S.st.reports)+' 次）。我已經提高咗附近嘅風險分數。'+(S.st&&!S.st.relay.on?'要唔要我幫你開驅蚊器？':''),actions:S.st&&!S.st.relay.on?[{tool:'relay',args:{state:'on'},why:'剛報告蚊蹤',st:'pending'}]:[]});saveChat();renderMsgs()}catch(e){toast('❌ 提交失敗')}}
+function gps(){if(!navigator.geolocation)return toast('唔支援定位');navigator.geolocation.getCurrentPosition(p=>{const la=p.coords.latitude,lo=p.coords.longitude;let b=0,bd=1e9;DC.forEach((c,i)=>{const k=km(la,lo,c[0],c[1]);if(k<bd){bd=k;b=i}});
+  API.settings({lat:la.toFixed(5),lon:lo.toFixed(5),dist:b}).then(tick).catch(()=>{});toast('📍 已定位：'+DN[b])},()=>toast('定位失敗（需要允許權限）'),{timeout:10000})}
+function applyTheme(){document.documentElement.dataset.theme=P.theme;document.querySelector('meta[name=theme-color]').content=P.theme==='light'?'#f4f6fb':'#0b1020'}
+
+/* ---------- init ---------- */
+const CHIPS=[['💬 而家情況點？','而家我呢區嘅蚊患風險點樣？要注意咩？'],['🗺️ 全港地圖','全港邊區最多蚊？'],['📅 未來三日','未來三日蚊患預測點樣？'],['📈 趨勢','過去幾個鐘風險有咩變化？'],['🦟 開驅蚊器','幫我開驅蚊器'],['🩺 登革熱','登革熱有咩症狀，點預防？']];
+async function init(){
+  applyTheme();paintIcons();
+  $$('#tabs button').forEach(b=>b.onclick=()=>go(b.dataset.v));
+  $('#chips').innerHTML=CHIPS.map((c,i)=>'<button data-c="'+i+'">'+c[0]+'</button>').join('');
+  $('#chips').addEventListener('click',e=>{const b=e.target.closest('[data-c]');if(b)quickAsk(CHIPS[+b.dataset.c][1])});
+  $$('#sev button').forEach(b=>b.onclick=()=>{sev=+b.dataset.s;$$('#sev button').forEach(x=>x.classList.toggle('on',x===b))});
+  $('#inp').addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.isComposing){e.preventDefault();send()}});
+  $('#inp').addEventListener('input',autosize);
+  document.addEventListener('click',ripple);
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeSheets();if(S.ctrl){S.stopped=true;S.ctrl.abort()}}});
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)tick()});
+  window.addEventListener('resize',()=>drawCharts());
+  renderMsgs();
+  await detectMode();
+  await tick();
+  loadHKO();loadDB();loadHist('s');loadModels();
+  setInterval(tick,S.mode==='sim'?3000:2500);
+  setInterval(()=>{if(!document.hidden)loadHist(TR).then(()=>{if(VIEW==='trend')renderView()})},60000);
+  setInterval(()=>{if(!document.hidden)loadDB()},300000);
+  setInterval(()=>{if(!document.hidden)loadHKO()},600000);
+}
+init();
+</script>
+</body>
+</html>
